@@ -1,0 +1,16 @@
+http://www.regexr.com/
+https://regex101.com/
+
+TEST URLS:
+http://www.twitch.tv/dexteritybonus/b/638919241
+
+http://www.twitch.tv/shaboozey/v/3923523
+
+http://media-cdn.twitch.tv/store150.media100/archives/2015-3-19/live_user_dexteritybonus_1426799700.flv
+
+--
+API URL (FORMAT B) ->>>> https://api.twitch.tv/api/videos/a638919241
+API URL (FORMAT V) ->>>>
+https://github.com/fonsleenaars/twitch-hls-vods
+https://github.com/timostrunk/TwitchVODM3U8Grabber
+https://github.com/ilyalissoboi/twitch_downloader/blob/master/downloader.py

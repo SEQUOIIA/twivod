@@ -1,0 +1,8 @@
+Match VOD type(retrieve vod system and vod id:
+	.*twitch.tv\/(.*?)\/(.)\/(.*[0-9])
+
+Match VOD file(retrieve filename)
+	.*twitch.tv\/.*?\/.*?\/.*?\/(.*)
+
+MATCH HLS VOD URL & m3u8 file
+	(.*ttvnw.net\/.*?\/.*?\/.*?\/.*?\/.*?)\/(.*)
