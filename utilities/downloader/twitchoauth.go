@@ -18,7 +18,17 @@ import (
     "github.com/GeertJohan/go.rice"
     "github.com/grafov/m3u8"
     "bufio"
+    "sourcegraph.com/sourcegraph/appdash/traceapp"
+    "sourcegraph.com/sourcegraph/appdash"
+    "time"
+    "sourcegraph.com/sourcegraph/appdash/httptrace"
+    "github.com/gorilla/context"
+    "github.com/gorilla/mux"
+    "github.com/codegangsta/negroni"
 )
+
+const CtxSpanID = 0
+var collector appdash.Collector
 
 func root(w http.ResponseWriter, r *http.Request) {
     p := ""
@@ -278,10 +288,42 @@ func success(w http.ResponseWriter, r *http.Request) {
 }
 
 func Oauth(vod models.VODinfo) {
+    memStore := appdash.NewMemoryStore()
+    store := &appdash.RecentStore{
+        MinEvictAge: 5 * time.Minute,
+        DeleteStore: memStore,
+    }
+    tapp := traceapp.New(nil)
+    tapp.Store = store
+    tapp.Queryer = memStore
+    log.Println("Appdash web UI running on HTTP :8700")
+    go func() {
+        log.Fatal(http.ListenAndServe(":8700", tapp))
+    }()
+    collector = appdash.NewLocalCollector(store)
+
+    tracemw := httptrace.Middleware(collector, &httptrace.MiddlewareConfig{
+        RouteName: func(r *http.Request) string { return r.URL.Path },
+        SetContextSpan: func(r *http.Request, spanID appdash.SpanID) {
+            context.Set(r, CtxSpanID, spanID)
+        },
+    })
+
+    router := mux.NewRouter()
+    router.HandleFunc("/", root)
+    router.HandleFunc("/success", success)
+
+    n := negroni.Classic()
+    n.Use(negroni.HandlerFunc(tracemw))
+    n.UseHandler(router)
+
     open.Start("http://localhost:7261")
-    http.HandleFunc("/", root)
+    n.Run(":7261")
+
+    /*http.HandleFunc("/", root)
     http.HandleFunc("/success", success)
     cssfileServer := http.StripPrefix("/css/", http.FileServer(rice.MustFindBox("views/css").HTTPBox()))
     http.Handle("/css/", cssfileServer)
     http.ListenAndServe(":7261", nil)
+    */
 }
