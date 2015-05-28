@@ -296,7 +296,7 @@ func Oauth(vod models.VODinfo) {
     tapp := traceapp.New(nil)
     tapp.Store = store
     tapp.Queryer = memStore
-    log.Println("Appdash web UI running on HTTP :8700")
+    //log.Println("Appdash web UI running on HTTP :8700")
     go func() {
         log.Fatal(http.ListenAndServe(":8700", tapp))
     }()
@@ -312,6 +312,8 @@ func Oauth(vod models.VODinfo) {
     router := mux.NewRouter()
     router.HandleFunc("/", root)
     router.HandleFunc("/success", success)
+	cssfileServer := http.StripPrefix("/css/", http.FileServer(rice.MustFindBox("views/css").HTTPBox()))
+	router.PathPrefix("/css/").Handler(cssfileServer)
 
     n := negroni.Classic()
     n.Use(negroni.HandlerFunc(tracemw))
