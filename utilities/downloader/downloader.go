@@ -211,7 +211,7 @@ func Get(urlarg string) {
                 panic(err)
             }
 
-            endpoint = "http://usher.twitch.tv/vod/" + vod.ID + "?nauthsig=" + vodToken.Sig + "&nauth=" + vodToken.Token
+            endpoint = "http://usher.justin.tv/vod/" + vod.ID + "?nauthsig=" + vodToken.Sig + "&nauth=" + vodToken.Token + "&allow_source=true"
             req, err = http.NewRequest("GET", endpoint, nil)
             if err != nil {
                 panic(err)

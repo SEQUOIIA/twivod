@@ -106,7 +106,7 @@ func dlvod(twitchoauthresponse []byte) {
             panic(err)
         }
 
-        endpoint := "http://usher.twitch.tv/vod/" + vod.ID + "?nauthsig=" + vodTokenresponse.Sig + "&nauth=" + vodTokenresponse.Token
+        endpoint := "http://usher.justin.tv/vod/" + vod.ID + "?nauthsig=" + vodTokenresponse.Sig + "&nauth=" + vodTokenresponse.Token + "&allow_source=true"
         req, err = http.NewRequest("GET", endpoint, nil)
         if err != nil {
             panic(err)
@@ -124,6 +124,7 @@ func dlvod(twitchoauthresponse []byte) {
         if err != nil {
             panic(err)
         }
+
 
         switch listType {
             case m3u8.MEDIA:
