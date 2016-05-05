@@ -225,7 +225,7 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 		if strict && err != nil {
 			return err
 		}
-	case strings.HasPrefix(line, "#EXT-X-TWITCH-INFO:"):
+	case strings.HasPrefix(line, "#EXT-X-TWITCH-INFO:"): // Twitch info tag(CDN region, etc...)
 		var twitch TwitchInfo
 		state.listType = MASTER
 		for k, v := range decodeParamsLine(line[19:]) {
@@ -242,7 +242,6 @@ func decodeLineOfMasterPlaylist(p *MasterPlaylist, state *decodingState, line st
 				twitch.UserIP = v
 			}
 		}
-		//state.twitchInfo = append(state.twitchInfo, &twitch)
 		p.TwitchInfos = append(p.TwitchInfos, &twitch)
 	case strings.HasPrefix(line, "#EXT-X-MEDIA:"):
 		var alt Alternative

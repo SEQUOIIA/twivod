@@ -280,7 +280,6 @@ type decodingState struct {
 	duration           float64
 	variant            *Variant
 	alternatives       []*Alternative
-	twitchInfo	   []*TwitchInfo
 	xkey               *Key
 	xmap               *Map
 	scte               *SCTE
