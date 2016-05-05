@@ -43,29 +43,6 @@ func legacydl(url string, filename string, wg *sync.WaitGroup) {
 	wg.Done()
 }
 
-func Get(urlarg string) {
-	vod := parser.VodInfo(fmt.Sprintf(urlarg))
-	if vod.Type != "404" {
-		fmt.Printf("\nDownloading VOD '%v' from Twitch channel '%v'\n",  vod.ID, vod.Channel)
-		cli := http.DefaultClient
-		var token models.HlsVodToken = getAccessToken(cli, vod.ID)
-
-		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vod.ID, token.Sig, token.Token), nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		resp, err := cli.Do(req)
-
-		p, _, err := m3u8.DecodeFrom(bufio.NewReader(resp.Body), true)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		masterPlayList := p.(*m3u8.MasterPlaylist)
-		fmt.Println(masterPlayList.TwitchInfos[0])
-	}
-}
 
 func getAccessToken(cli *http.Client, vodId string) models.HlsVodToken {
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/api/vods/%s/access_token", vodId), nil)
@@ -91,6 +68,43 @@ func getAccessToken(cli *http.Client, vodId string) models.HlsVodToken {
 
 	return returnModel
 }
+
+func Get(urlarg string) {
+	vod := parser.VodInfo(fmt.Sprintf(urlarg))
+	if vod.Type != "404" {
+		fmt.Printf("\nDownloading VOD '%v' from Twitch channel '%v'\n",  vod.ID, vod.Channel)
+		cli := http.DefaultClient
+		var token models.HlsVodToken = getAccessToken(cli, vod.ID)
+
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vod.ID, token.Sig, token.Token), nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		resp, err := cli.Do(req)
+
+		p, _, err := m3u8.DecodeFrom(bufio.NewReader(resp.Body), true)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		masterPlayList := p.(*m3u8.MasterPlaylist)
+		fmt.Printf("CDN region & vendor: %s(%s), User IP: %s\n", masterPlayList.TwitchInfos[0].Region, masterPlayList.TwitchInfos[0].Cluster, masterPlayList.TwitchInfos[0].UserIP)
+
+		for t, data := range masterPlayList.Variants {
+			log.Printf("%v %s (%s - %v avg Kbps) \n", t, data.Video, data.Resolution, (data.Bandwidth / 1000))
+		}
+
+		var ffmpegArgs string = fmt.Sprintf("%s_%s_.mp4", vod.Channel, vod.ID)
+		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
+		cmd.Stdout = os.Stdout
+		cmd.Stdin = os.Stdin
+		cmd.Stderr = os.Stderr
+		cmd.Run()
+		fmt.Println("Done!")
+	}
+}
+
 
 func LegacyGet(urlarg string) {
 	vod := parser.VodInfo(fmt.Sprintf(urlarg))
