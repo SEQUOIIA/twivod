@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cheggaaa/pb"
-	"github.com/equoia/twiVod/models"
-	"github.com/equoia/twiVod/utilities/parser"
+	"github.com/sequoiia/twiVod/models"
+	"github.com/sequoiia/twiVod/utilities/parser"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -13,11 +13,12 @@ import (
 	"os/exec"
 	"regexp"
 	"sync"
-    "github.com/grafov/m3u8"
-    "bufio"
+    	"github.com/grafov/m3u8"
+    	"bufio"
+	"log"
 )
 
-func dl(url string, filename string, wg *sync.WaitGroup) {
+func legacydl(url string, filename string, wg *sync.WaitGroup) {
 	out, err := os.Create(filename + ".flv")
 	if err != nil {
 		panic(err)
@@ -43,6 +44,55 @@ func dl(url string, filename string, wg *sync.WaitGroup) {
 }
 
 func Get(urlarg string) {
+	vod := parser.VodInfo(fmt.Sprintf(urlarg))
+	if vod.Type != "404" {
+		fmt.Printf("\nDownloading VOD '%v' from Twitch channel '%v'\n",  vod.ID, vod.Channel)
+		cli := http.DefaultClient
+		var token models.HlsVodToken = getAccessToken(cli, vod.ID)
+
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vod.ID, token.Sig, token.Token), nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		resp, err := cli.Do(req)
+
+		p, _, err := m3u8.DecodeFrom(bufio.NewReader(resp.Body), true)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		masterPlayList := p.(*m3u8.MasterPlaylist)
+		fmt.Println(masterPlayList.TwitchInfos[0])
+	}
+}
+
+func getAccessToken(cli *http.Client, vodId string) models.HlsVodToken {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/api/vods/%s/access_token", vodId), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tmpbody, err := ioutil.ReadAll(resp.Body)
+
+	defer resp.Body.Close()
+
+	var returnModel models.HlsVodToken
+
+	err = json.Unmarshal(tmpbody, &returnModel)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return returnModel
+}
+
+func LegacyGet(urlarg string) {
 	vod := parser.VodInfo(fmt.Sprintf(urlarg))
 	if vod.Type != "404" {
 
@@ -72,19 +122,19 @@ func Get(urlarg string) {
 
 			if len(apiresponse.Chunks.Live) == 0 {
 				fmt.Println("Looks like this VOD is subscriber only, you will need to authenticate before proceeding.\n Go to http://localhost:7261")
-                tmpdatafile, err := os.Create("vod_oauth")
-                if err != nil {
-                    panic(err)
-                }
+				tmpdatafile, err := os.Create("vod_oauth")
+				if err != nil {
+				    panic(err)
+				}
 
-                jsonedvod, err := json.Marshal(vod)
-                if err != nil {
-                    panic(err)
-                }
+				jsonedvod, err := json.Marshal(vod)
+				if err != nil {
+				    panic(err)
+				}
 
-                tmpdatafile.Write([]byte(jsonedvod))
-				// Add oauth authentication here
-                Oauth(vod)
+				tmpdatafile.Write([]byte(jsonedvod))
+						// Add oauth authentication here
+				Oauth(vod)
 			} else {
 				//var vodurls []string
 
@@ -92,7 +142,7 @@ func Get(urlarg string) {
 				wg.Add(len(apiresponse.Chunks.Live))
 				for _, data := range apiresponse.Chunks.Live {
 					r := regexp.MustCompile(`.*.tv\/.*?(live.*)\.`)
-					go dl(data.Url, r.FindStringSubmatch(data.Url)[1], &wg)
+					go legacydl(data.Url, r.FindStringSubmatch(data.Url)[1], &wg)
 					//vodurls = append(vodurls, data.Url)
 				}
 				//fmt.Println(len(vodurls))

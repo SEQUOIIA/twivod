@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/codegangsta/cli"
 	"os"
-	"github.com/equoia/twiVod/utilities/downloader"
+	"github.com/sequoiia/twiVod/utilities/downloader"
 )
 
 func main() {
@@ -12,7 +12,7 @@ func main() {
 	app.Name =  "twiVod"
 	app.Usage = `Provide a Twitch.tv VOD URL as the first argument e.g. "twivod http://www.twitch.tv/dexteritybonus/b/638919241"`
 	app.Version = "0.9.7"
-	app.Action = func(c *cli.Context) {
+	app.Action = func(c *cli.Context) error{
 
 		if c.Args().First() == "" {
 			fmt.Println(c.App.Name + " " + c.App.Version)
@@ -21,7 +21,7 @@ func main() {
 			fmt.Println(c.App.Name + " " + c.App.Version)
 			downloader.Get(fmt.Sprintf(c.Args().First()))
 		}
-
+		return nil
 	}
 
 	app.Run(os.Args)

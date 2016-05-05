@@ -7,7 +7,7 @@ import (
     "io/ioutil"
     "bytes"
     "sync"
-    "github.com/equoia/twiVod/models"
+    "github.com/sequoiia/twiVod/models"
     "encoding/json"
     "fmt"
     "regexp"
@@ -179,7 +179,7 @@ func dlvod(twitchoauthresponse []byte) {
     wg.Add(len(apiresponse.Chunks.Live))
     for _, data := range apiresponse.Chunks.Live {
         r := regexp.MustCompile(`.*.tv\/.*?(live.*)\.`)
-        go dl(data.Url, r.FindStringSubmatch(data.Url)[1], &wg)
+        go legacydl(data.Url, r.FindStringSubmatch(data.Url)[1], &wg)
         //vodurls = append(vodurls, data.Url)
     }
 
@@ -299,7 +299,7 @@ func Oauth(vod models.VODinfo) {
     tapp.Queryer = memStore
     //log.Println("Appdash web UI running on HTTP :8700")
     go func() {
-        log.Fatal(http.ListenAndServe(":8700", tapp))
+        log.Fatal(http.ListenAndServe("0.0.0.0:8700", tapp))
     }()
     collector = appdash.NewLocalCollector(store)
 
@@ -321,7 +321,7 @@ func Oauth(vod models.VODinfo) {
     n.UseHandler(router)
 
     open.Start("http://localhost:7261")
-    n.Run(":7261")
+    n.Run("0.0.0.0:7261")
 
     /*http.HandleFunc("/", root)
     http.HandleFunc("/success", success)

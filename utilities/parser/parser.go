@@ -2,7 +2,7 @@ package parser
 
 import (
 	"fmt"
-	"github.com/equoia/twiVod/models"
+	"github.com/sequoiia/twiVod/models"
 	"regexp"
 )
 
