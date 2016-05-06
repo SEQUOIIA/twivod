@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type VODinfo struct {
 	Channel		string
 	Type		string
@@ -26,4 +28,48 @@ type TwitchOauthResponse struct {
 type HlsVodToken struct {
     Token   string  `json:"token"`
     Sig     string  `json:"sig"`
+}
+
+type VodInfoKraken struct {
+	Title string `json:"title"`
+	Description interface{} `json:"description"`
+	BroadcastID int64 `json:"broadcast_id"`
+	BroadcastType string `json:"broadcast_type"`
+	Status string `json:"status"`
+	TagList string `json:"tag_list"`
+	Views int `json:"views"`
+	CreatedAt time.Time `json:"created_at"`
+	ID string `json:"_id"`
+	RecordedAt time.Time `json:"recorded_at"`
+	Game string `json:"game"`
+	Length float64 `json:"length"`
+	Preview string `json:"preview"`
+	Thumbnails []struct {
+		URL string `json:"url"`
+		Type string `json:"type"`
+	} `json:"thumbnails"`
+	URL string `json:"url"`
+	Fps struct {
+		      AudioOnly float64 `json:"audio_only"`
+		      Medium float64 `json:"medium"`
+		      Mobile float64 `json:"mobile"`
+		      High float64 `json:"high"`
+		      Low float64 `json:"low"`
+		      Chunked float64 `json:"chunked"`
+	      } `json:"fps"`
+	Resolutions struct {
+		      Medium string `json:"medium"`
+		      Mobile string `json:"mobile"`
+		      High string `json:"high"`
+		      Low string `json:"low"`
+		      Chunked string `json:"chunked"`
+	      } `json:"resolutions"`
+	Links struct {
+		      Self string `json:"self"`
+		      Channel string `json:"channel"`
+	      } `json:"_links"`
+	Channel struct {
+		      Name string `json:"name"`
+		      DisplayName string `json:"display_name"`
+	      } `json:"channel"`
 }

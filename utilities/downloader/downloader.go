@@ -79,6 +79,7 @@ func Get(urlarg string) {
 		fmt.Printf("\nDownloading VOD '%v' from Twitch channel '%v'\n",  vod.ID, vod.Channel)
 		cli := http.DefaultClient
 		var token models.HlsVodToken = getAccessToken(cli, vod.ID)
+		var vodKraken models.VodInfoKraken = getVodInfo(cli, vod)
 
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vod.ID, token.Sig, token.Token), nil)
 		if err != nil {
@@ -98,17 +99,8 @@ func Get(urlarg string) {
 		for t, data := range masterPlayList.Variants {
 			log.Printf("%v %s (%s - %v avg Kbps) \n", t, data.Video, data.Resolution, (data.Bandwidth / 1000))
 		}
-		/*
-		var ffmpegArgs string = fmt.Sprintf("%s_%s_.mp4", vod.Channel, vod.ID)
-		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
-		cmd.Stdout = os.Stdout
-		cmd.Stdin = os.Stdin
-		cmd.Stderr = os.Stderr
-		cmd.Run()
-		fmt.Println("Done!")
-		*/
 
-		var ffmpegArgs string = fmt.Sprintf("%s_%s.mp4", vod.Channel, vod.ID)
+		var ffmpegArgs string = fmt.Sprintf("%s_%s_%s.mp4", vodKraken.Title, vod.Channel, vod.ID)
 		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
 		stdout, err := cmd.StderrPipe()
 		r := bufio.NewReader(stdout)
@@ -119,14 +111,32 @@ func Get(urlarg string) {
 			log.Fatal(err)
 		}
 
-		getProgress(r)
+		getProgress(r, vodKraken.Length)
+
+		fmt.Println("Download finished!")
 	}
 }
 
-func getProgress(r *bufio.Reader) {
+func getVodInfo(hc *http.Client, regVod models.VODinfo) models.VodInfoKraken{
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/kraken/videos/%s%s?on_site=1", regVod.Type, regVod.ID), nil); if err != nil {
+		log.Fatal(err)
+	}
+
+	resp, err := hc.Do(req)
+
+	var payload models.VodInfoKraken
+
+	err = json.NewDecoder(resp.Body).Decode(&payload); if err != nil {
+		log.Fatal(err)
+	}
+
+	return payload
+}
+
+func getProgress(r *bufio.Reader, timestamp float64) {
 	for {
 		line, err := r.ReadString('\r'); if err != nil {
-			log.Fatal(err)
+			break
 		}
 
 		linee := strings.TrimSpace(line)
