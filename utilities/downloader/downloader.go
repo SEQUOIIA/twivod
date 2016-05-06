@@ -16,7 +16,11 @@ import (
     	"github.com/grafov/m3u8"
     	"bufio"
 	"log"
+	"strings"
+	"strconv"
 )
+
+var reKeyValue = regexp.MustCompile(`(time)=("[^"]+"|[^" ]+)`)
 
 func legacydl(url string, filename string, wg *sync.WaitGroup) {
 	out, err := os.Create(filename + ".flv")
@@ -94,7 +98,7 @@ func Get(urlarg string) {
 		for t, data := range masterPlayList.Variants {
 			log.Printf("%v %s (%s - %v avg Kbps) \n", t, data.Video, data.Resolution, (data.Bandwidth / 1000))
 		}
-
+		/*
 		var ffmpegArgs string = fmt.Sprintf("%s_%s_.mp4", vod.Channel, vod.ID)
 		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
 		cmd.Stdout = os.Stdout
@@ -102,7 +106,53 @@ func Get(urlarg string) {
 		cmd.Stderr = os.Stderr
 		cmd.Run()
 		fmt.Println("Done!")
+		*/
+
+		var ffmpegArgs string = fmt.Sprintf("%s_%s.mp4", vod.Channel, vod.ID)
+		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
+		stdout, err := cmd.StderrPipe()
+		r := bufio.NewReader(stdout)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = cmd.Start(); if err != nil {
+			log.Fatal(err)
+		}
+
+		getProgress(r)
 	}
+}
+
+func getProgress(r *bufio.Reader) {
+	for {
+		line, err := r.ReadString('\r'); if err != nil {
+			log.Fatal(err)
+		}
+
+		linee := strings.TrimSpace(line)
+		fmt.Println(linee)
+
+		switch  {
+		case strings.HasPrefix(linee, "frame="):
+			tmp := decodeParamsLine(linee)
+			times := strings.Split(tmp["time"], ":")
+			hours, _ := strconv.Atoi(times[0])
+			minutes, _ := strconv.Atoi(times[1])
+			seconds, _ := strconv.ParseFloat(times[2], 64)
+
+			var TotalTime int = int(seconds) + (minutes * 60) + ((hours * 60) * 60)
+			fmt.Printf("timestamp: %v\n", TotalTime)
+		}
+	}
+}
+
+func decodeParamsLine(line string) map[string]string {
+	out := make(map[string]string)
+	for _, kv := range reKeyValue.FindAllStringSubmatch(line, -1) {
+		k, v := kv[1], kv[2]
+		out[k] = strings.Trim(v, ` "`)
+	}
+	return out
 }
 
 
