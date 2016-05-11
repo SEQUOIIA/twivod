@@ -5,11 +5,40 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"github.com/sequoiia/twiVod/server/controller"
+	"github.com/auth0/go-jwt-middleware"
+	"github.com/dgrijalva/jwt-go"
+	"crypto/rsa"
+	"crypto/rand"
+	"log"
+	"fmt"
+	"time"
 )
+
+var jwtMiddleware *jwtmiddleware.JWTMiddleware
+
+var PubKey rsa.PublicKey
+var PrivKey *rsa.PrivateKey
 
 func main() {
 	httpCli := http.DefaultClient
 	controller.HttpClient = httpCli
+
+	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	PubKey = privKey.PublicKey
+	PrivKey = privKey
+
+	jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
+		ValidationKeyGetter: func (token *jwt.Token) (interface{}, error) {
+			return &PubKey, nil
+		},
+		SigningMethod: jwt.SigningMethodRS512,
+		Debug: false,
+		Extractor: jwtmiddleware.FromCookie,
+	})
 
 	n := negroni.New(negroni.NewRecovery())
 	n.UseHandler(newRouter())
@@ -25,6 +54,7 @@ func newRouter() *mux.Router {
 	))
 
 	router.PathPrefix("/api").Handler(negroni.New(
+		negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
 		negroni.Wrap(newApiRouter()),
 	))
 
@@ -50,4 +80,29 @@ func newApiRouter() *mux.Router {
 
 
 func rootHandle(w http.ResponseWriter, r *http.Request) {
+	jwtToken := jwt.New(jwt.SigningMethodRS512)
+
+	jwtToken.Claims["AccessToken"] = "level1"
+	jwtToken.Claims["UserInfo"] = struct {
+		Name string
+		Access bool
+	}{Name: "sequoiia", Access: true}
+
+	jwtToken.Claims["exp"] = time.Now().Add(time.Minute * 1).Unix()
+
+	jwtTokenString, err := jwtToken.SignedString(PrivKey)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name: "AccessToken",
+		Value: jwtTokenString,
+		Path: "/",
+		RawExpires: "0",
+	})
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Cookie set."))
 }
