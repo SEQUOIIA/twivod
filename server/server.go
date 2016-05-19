@@ -10,8 +10,6 @@ import (
 	"crypto/rsa"
 	"crypto/rand"
 	"log"
-	"fmt"
-	"time"
 )
 
 var jwtMiddleware *jwtmiddleware.JWTMiddleware
@@ -49,7 +47,7 @@ func main() {
 func newRouter() *mux.Router {
 	router := mux.NewRouter()
 
-	router.Handle("/", negroni.New(
+	router.Handle("/setDebugCookie", negroni.New(
 		negroni.Wrap(http.HandlerFunc(rootHandle)),
 	))
 
@@ -74,6 +72,10 @@ func newApiRouter() *mux.Router {
 		negroni.Wrap(http.HandlerFunc(controller.LookupTwitchUserVods)),
 	))
 
+	router.Handle("/lookup/user", negroni.New(
+		negroni.Wrap(http.HandlerFunc(controller.LookupTwitchUsers)),
+	))
+
 	return routerBase
 }
 
@@ -88,7 +90,7 @@ func rootHandle(w http.ResponseWriter, r *http.Request) {
 		Access bool
 	}{Name: "sequoiia", Access: true}
 
-	jwtToken.Claims["exp"] = time.Now().Add(time.Minute * 1).Unix()
+	//jwtToken.Claims["exp"] = time.Now().Add(time.Minute * 1).Unix()
 
 	jwtTokenString, err := jwtToken.SignedString(PrivKey)
 	if err != nil {

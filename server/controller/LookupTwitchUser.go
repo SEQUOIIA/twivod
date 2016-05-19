@@ -21,6 +21,8 @@ func LookupTwitchUser(w http.ResponseWriter, r *http.Request) {
 		log.Println("Something went wrong during a lookup request for a Twitch user.")
 	}
 
+	req.Header.Set("Client-ID", "twiVod - github.com/sequoiia/twivod")
+
 	resp, err := HttpClient.Do(req)
 
 	defer resp.Body.Close()
@@ -30,6 +32,50 @@ func LookupTwitchUser(w http.ResponseWriter, r *http.Request) {
 	err = json.NewDecoder(resp.Body).Decode(&TwitchUser)
 
 	w.Write([]byte(fmt.Sprintf("%s", TwitchUser)))
+}
+
+func LookupTwitchUsers(w http.ResponseWriter, r *http.Request) {
+	var limit, offset, query string
+	status, value := setQueryVariables(r, "limit"); if status {
+		limit = value
+	} else {
+		limit = "8"
+	}
+
+	status, value = setQueryVariables(r, "offset"); if status {
+		offset = value
+	} else {
+		offset = "0"
+	}
+
+	status, value = setQueryVariables(r, "query"); if status {
+		query = value
+	}
+
+	if query == "" {
+		w.WriteHeader(400)
+		w.Write([]byte("No query provided."))
+	} else {
+		log.Printf("Searching for users named %s", query)
+
+		req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/kraken/search/channels?q=%s&offset=%s&limit=%s", query, offset, limit), nil); if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte("Server error."))
+			log.Println("Something went wrong during a lookup request for a Twitch user.")
+		}
+
+		req.Header.Set("Client-ID", "twiVod - github.com/sequoiia/twivod")
+
+		resp, err := HttpClient.Do(req)
+
+		defer resp.Body.Close()
+
+		var TwitchUsers models.TwitchUsersSearch
+
+		err = json.NewDecoder(resp.Body).Decode(&TwitchUsers)
+
+		w.Write([]byte(fmt.Sprintf("%s", TwitchUsers)))
+	}
 }
 
 func LookupTwitchUserVods(w http.ResponseWriter, r *http.Request) {
@@ -55,6 +101,8 @@ func LookupTwitchUserVods(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Server error."))
 		log.Println("Something went wrong during a lookup request for a Twitch user.")
 	}
+
+	req.Header.Set("Client-ID", "twiVod - github.com/sequoiia/twivod")
 
 	resp, err := HttpClient.Do(req)
 
