@@ -8,8 +8,10 @@ import (
 	"github.com/auth0/go-jwt-middleware"
 	"github.com/dgrijalva/jwt-go"
 	"crypto/rsa"
-	"crypto/rand"
 	"log"
+	"encoding/pem"
+	"io/ioutil"
+	"crypto/x509"
 )
 
 var jwtMiddleware *jwtmiddleware.JWTMiddleware
@@ -21,10 +23,12 @@ func main() {
 	httpCli := http.DefaultClient
 	controller.HttpClient = httpCli
 
-	privKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
+	privKeyFile, err := ioutil.ReadFile("twivod.key"); if err != nil {
 		log.Fatal(err)
 	}
+
+	tmp, _ := pem.Decode(privKeyFile)
+	privKey, err := x509.ParsePKCS1PrivateKey(tmp.Bytes)
 
 	PubKey = privKey.PublicKey
 	PrivKey = privKey
