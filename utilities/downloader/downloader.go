@@ -54,6 +54,8 @@ func getAccessToken(cli *http.Client, vodId string) models.HlsVodToken {
 		log.Fatal(err)
 	}
 
+	req.Header.Set("client-id", models.TwitchConfig.Client_id)
+
 	resp, err := cli.Do(req)
 	if err != nil {
 		log.Fatal(err)
@@ -121,6 +123,8 @@ func getVodInfo(hc *http.Client, regVod models.VODinfo) models.VodInfoKraken{
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/kraken/videos/%s%s?on_site=1", regVod.Type, regVod.ID), nil); if err != nil {
 		log.Fatal(err)
 	}
+
+	req.Header.Set("client-id", models.TwitchConfig.Client_id)
 
 	resp, err := hc.Do(req)
 
