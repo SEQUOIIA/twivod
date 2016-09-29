@@ -99,10 +99,10 @@ func Get(urlarg string) {
 		fmt.Printf("CDN region & vendor: %s(%s), User IP: %s\n", masterPlayList.TwitchInfos[0].Region, masterPlayList.TwitchInfos[0].Cluster, masterPlayList.TwitchInfos[0].UserIP)
 
 		for t, data := range masterPlayList.Variants {
-			log.Printf("%v %s (%s - %v avg Kbps) \n", t, data.Video, data.Resolution, (data.Bandwidth / 1000))
+			log.Printf("%v %s (%s - %v avg Kbps bitrate) \n", t, data.Video, data.Resolution, (data.Bandwidth / 1000))
 		}
 
-		var ffmpegArgs string = fmt.Sprintf("%s_%s_%s.mp4", vodKraken.Title, vod.Channel, vod.ID)
+		var ffmpegArgs string = fmt.Sprintf("%s_%s.mp4", vod.Channel, vod.ID)
 		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
 		stdout, err := cmd.StderrPipe()
 		r := bufio.NewReader(stdout)
