@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 	"os"
 	"github.com/sequoiia/twiVod/utilities/downloader"
+	"github.com/sequoiia/twiVod/models"
+	"log"
 )
 
 func main() {
@@ -19,7 +21,17 @@ func main() {
 			fmt.Println("  " + c.App.Usage)
 		} else {
 			fmt.Println(c.App.Name + " " + c.App.Version)
-			downloader.Get(fmt.Sprintf(c.Args().First()))
+			var vodOptions *models.TwitchVodOptions = new(models.TwitchVodOptions)
+			vodOptions.Url = fmt.Sprintf(c.Args().First())
+			vodOptions.MaxConcurrentDownloads = 4
+			err := downloader.Download(vodOptions)
+			if err !=  nil {
+				log.Fatal(err)
+			}
+
+			log.Println(vodOptions.FileName)
+			log.Println(vodOptions.Name)
+			downloader.Remux(vodOptions)
 		}
 		return nil
 	}

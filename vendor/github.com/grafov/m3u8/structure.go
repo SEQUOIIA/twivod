@@ -112,6 +112,7 @@ type MediaPlaylist struct {
 	Key            *Key // EXT-X-KEY is optional encryption key displayed before any segments (default key for the playlist)
 	Map            *Map // EXT-X-MAP is optional tag specifies how to obtain the Media Initialization Section (default map for the playlist)
 	WV             *WV  // Widevine related tags outside of M3U8 specs
+	TwitchInfo     *TwitchInfoMedia
 }
 
 /*
@@ -182,6 +183,11 @@ type TwitchInfo struct {
 	Region		string
 	ManifestCluster	string
 	UserIP		string
+}
+
+type TwitchInfoMedia struct {
+	ElapsedSeconds 	string
+	TotalSeconds	string
 }
 
 // This structure represents a media segment included in a media playlist.

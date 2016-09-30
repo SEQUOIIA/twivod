@@ -153,6 +153,7 @@ func decode(buf *bytes.Buffer, strict bool) (Playlist, ListType, error) {
 
 	master = NewMasterPlaylist()
 	media, err = NewMediaPlaylist(8, 1024) // TODO make it autoextendable
+	media.TwitchInfo = new(TwitchInfoMedia)
 	if err != nil {
 		return nil, 0, fmt.Errorf("Create media playlist failed: %s", err)
 	}
@@ -378,6 +379,16 @@ func decodeLineOfMediaPlaylist(p *MediaPlaylist, wv *WV, state *decodingState, l
 	case line == "#EXT-X-ENDLIST":
 		state.listType = MEDIA
 		p.Closed = true
+	case strings.HasPrefix(line, "#EXT-X-TWITCH-ELAPSED-SECS:"):
+		state.listType = MEDIA
+		if _, err := fmt.Sscanf(line, "#EXT-X-TWITCH-ELAPSED-SECS:%s", &p.TwitchInfo.ElapsedSeconds); strict && err != nil {
+			return err
+		}
+	case strings.HasPrefix(line, "#EXT-X-TWITCH-TOTAL-SECS:"):
+		state.listType = MEDIA
+		if _, err := fmt.Sscanf(line, "#EXT-X-TWITCH-TOTAL-SECS:%s", &p.TwitchInfo.TotalSeconds); strict && err != nil {
+			return err
+		}
 	case strings.HasPrefix(line, "#EXT-X-VERSION:"):
 		state.listType = MEDIA
 		if _, err = fmt.Sscanf(line, "#EXT-X-VERSION:%d", &p.ver); strict && err != nil {

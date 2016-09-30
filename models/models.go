@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"time"
+	"io"
+)
 
 type VODinfo struct {
 	Channel		string
@@ -180,4 +183,9 @@ type TwitchUsersSearch struct {
 			       Videos string `json:"videos"`
 		       } `json:"_links"`
 	} `json:"channels"`
+}
+
+type TwitchVodSegment struct {
+	Id int
+	ResponseBody io.ReadCloser
 }
