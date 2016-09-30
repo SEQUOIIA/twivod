@@ -7,12 +7,13 @@ import (
 	"github.com/sequoiia/twiVod/utilities/downloader"
 	"github.com/sequoiia/twiVod/models"
 	"log"
+	"strconv"
 )
 
 func main() {
 	app := cli.NewApp()
 	app.Name =  "twiVod"
-	app.Usage = `Provide a Twitch.tv VOD URL as the first argument e.g. "twivod http://www.twitch.tv/dexteritybonus/b/638919241"`
+	app.Usage = `Provide a Twitch.tv VOD URL as the first argument e.g. "twivod 4 http://www.twitch.tv/dexteritybonus/b/638919241"`
 	app.Version = "0.9.7"
 	app.Action = func(c *cli.Context) error{
 
@@ -22,9 +23,14 @@ func main() {
 		} else {
 			fmt.Println(c.App.Name + " " + c.App.Version)
 			var vodOptions *models.TwitchVodOptions = new(models.TwitchVodOptions)
-			vodOptions.Url = fmt.Sprintf(c.Args().First())
-			vodOptions.MaxConcurrentDownloads = 4
-			err := downloader.Download(vodOptions)
+			vodOptions.Url = fmt.Sprintf(c.Args().Get(1))
+			param0, err := strconv.Atoi(c.Args().Get(0))
+			if err != nil {
+				log.Fatal("Invalid parameters.")
+			}
+			vodOptions.MaxConcurrentDownloads = param0
+
+			err = downloader.Download(vodOptions)
 			if err !=  nil {
 				log.Fatal(err)
 			}

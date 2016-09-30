@@ -50,9 +50,7 @@ func Download(vod *models.TwitchVodOptions) (error){
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		log.Println(masterPlaylist.Variants[0].URI)
-
+		
 		resp, err = HttpClient.Do(req)
 		if err != nil {
 			log.Fatal(err)
@@ -64,7 +62,7 @@ func Download(vod *models.TwitchVodOptions) (error){
 		}
 
 		pMediaPlaylist := pMedia.(*m3u8.MediaPlaylist)
-		log.Printf("Total seconds: %s, elasped seconds: %s\n", pMediaPlaylist.TwitchInfo.TotalSeconds, pMediaPlaylist.TwitchInfo.ElapsedSeconds)
+		log.Printf("Total seconds: %s, elasped seconds: %s, concurrent option: %d\n", pMediaPlaylist.TwitchInfo.TotalSeconds, pMediaPlaylist.TwitchInfo.ElapsedSeconds, vod.MaxConcurrentDownloads)
 
 		var w io.WriteCloser
 		var endPos int = int(pMediaPlaylist.Count())
@@ -125,8 +123,6 @@ func Download(vod *models.TwitchVodOptions) (error){
 				pd++
 			}
 		}
-
-		log.Println("This text should be here")
 
 	} else {
 		return errors.New("VOD not found on Twitch.TV.")
