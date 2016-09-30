@@ -152,7 +152,7 @@ func decode(buf *bytes.Buffer, strict bool) (Playlist, ListType, error) {
 	wv := new(WV)
 
 	master = NewMasterPlaylist()
-	media, err = NewMediaPlaylist(8, 1024) // TODO make it autoextendable
+	media, err = NewMediaPlaylist(8, 10000) // TODO make it autoextendable
 	media.TwitchInfo = new(TwitchInfoMedia)
 	if err != nil {
 		return nil, 0, fmt.Errorf("Create media playlist failed: %s", err)
