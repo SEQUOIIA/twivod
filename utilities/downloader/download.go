@@ -70,12 +70,30 @@ func Download(vod *models.TwitchVodOptions) (error){
 		var concurrentAmount int = 0
 		var bytesBuffer bytes.Buffer
 		var vodEndpoint string = ""
-		var vodEndpointCurrent = 0
+		var vodEndpointCurrent = len(masterPlaylist.Variants[0].URI) - 1
+		var vodEndpointSlashReached bool = false
+		var vodEndpointSlashP = 0
 
-		for vodEndpointCurrent = 0; vodEndpointCurrent <= (len(masterPlaylist.Variants[0].URI) - 15); vodEndpointCurrent++ {
-			bytesBuffer.WriteByte(masterPlaylist.Variants[0].URI[vodEndpointCurrent])
+		for !vodEndpointSlashReached {
+			log.Println(vodEndpointCurrent)
+			if (masterPlaylist.Variants[0].URI[vodEndpointCurrent]) == '/' {
+				vodEndpointSlashReached = true
+				vodEndpointSlashP = vodEndpointCurrent
+				break
+			}
+
+			vodEndpointCurrent--
 		}
+
+		vodEndpointCurrent = 0
+
+		for i := 0; i <= vodEndpointSlashP; i++ {
+			bytesBuffer.WriteByte(masterPlaylist.Variants[0].URI[vodEndpointCurrent])
+			vodEndpointCurrent++
+		}
+
 		vodEndpoint = bytesBuffer.String()
+		log.Println(vodEndpoint)
 
 		vod.FileName = fmt.Sprintf("%s.ts", vodInfo.ID)
 		vod.Name = fmt.Sprintf("%s_%s", vodInfo.Channel,vodInfo.ID)
