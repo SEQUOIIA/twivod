@@ -1,114 +1,11 @@
 package main
 
-import (
-	"github.com/codegangsta/negroni"
-	"github.com/gorilla/mux"
-	"net/http"
-	"github.com/sequoiia/twiVod/server/controller"
-	"github.com/auth0/go-jwt-middleware"
-	"github.com/dgrijalva/jwt-go"
-	"crypto/rsa"
-	"log"
-	"encoding/pem"
-	"io/ioutil"
-	"crypto/x509"
-)
-
-var jwtMiddleware *jwtmiddleware.JWTMiddleware
-
-var PubKey rsa.PublicKey
-var PrivKey *rsa.PrivateKey
+import "github.com/sequoiia/twiVod/server/twitch"
 
 func main() {
-	httpCli := http.DefaultClient
-	controller.HttpClient = httpCli
+	t := twitch.NewClient("whfl4lyxyzgp36d1el8v2yuyit0ge5")
+	t.Testerino()
+	select {
 
-	privKeyFile, err := ioutil.ReadFile("twivod.key"); if err != nil {
-		log.Fatal(err)
 	}
-
-	tmp, _ := pem.Decode(privKeyFile)
-	privKey, err := x509.ParsePKCS1PrivateKey(tmp.Bytes)
-
-	PubKey = privKey.PublicKey
-	PrivKey = privKey
-
-	jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
-		ValidationKeyGetter: func (token *jwt.Token) (interface{}, error) {
-			return &PubKey, nil
-		},
-		SigningMethod: jwt.SigningMethodRS512,
-		Debug: false,
-		Extractor: jwtmiddleware.FromCookie,
-	})
-
-	n := negroni.New(negroni.NewRecovery())
-	n.UseHandler(newRouter())
-
-	n.Run("0.0.0.0:32499")
-}
-
-func newRouter() *mux.Router {
-	router := mux.NewRouter()
-
-	router.Handle("/setDebugCookie", negroni.New(
-		negroni.Wrap(http.HandlerFunc(rootHandle)),
-	))
-
-	router.PathPrefix("/api").Handler(negroni.New(
-		negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
-		negroni.Wrap(newApiRouter()),
-	))
-
-	return router
-}
-
-func newApiRouter() *mux.Router {
-	routerBase := mux.NewRouter()
-
-	router := routerBase.PathPrefix("/api").Subrouter()
-
-	router.Handle("/lookup/user/{TwitchUsername}", negroni.New(
-		negroni.Wrap(http.HandlerFunc(controller.LookupTwitchUser)),
-	))
-
-	router.Handle("/lookup/user/{TwitchUsername}/vods", negroni.New(
-		negroni.Wrap(http.HandlerFunc(controller.LookupTwitchUserVods)),
-	))
-
-	router.Handle("/lookup/user", negroni.New(
-		negroni.Wrap(http.HandlerFunc(controller.LookupTwitchUsers)),
-	))
-
-	return routerBase
-}
-
-
-
-func rootHandle(w http.ResponseWriter, r *http.Request) {
-	jwtToken := jwt.New(jwt.SigningMethodRS512)
-
-	jwtToken.Claims["AccessToken"] = "level1"
-	jwtToken.Claims["UserInfo"] = struct {
-		Name string
-		Access bool
-	}{Name: "sequoiia", Access: true}
-
-	//jwtToken.Claims["exp"] = time.Now().Add(time.Minute * 1).Unix()
-
-	jwtTokenString, err := jwtToken.SignedString(PrivKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name: "AccessToken",
-		Value: jwtTokenString,
-		Path: "/",
-		RawExpires: "0",
-	})
-
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Cookie set."))
 }
