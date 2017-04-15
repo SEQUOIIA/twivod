@@ -3,12 +3,15 @@ package twitch
 import (
 	"net/http"
 	"io"
+	"log"
+	"fmt"
 )
 
 type Twitch struct {
 	httpCli * http.Client
 	clientID string
 	apiVersion string
+	debug bool
 }
 
 const OfficialTwitchAPIEndpoint string = "https://api.twitch.tv"
@@ -16,6 +19,13 @@ const OfficialTwitchAPIEndpoint string = "https://api.twitch.tv"
 func (t * Twitch) defaultInit() {
 	t.httpCli = http.DefaultClient
 	t.apiVersion = "application/vnd.twitchtv.v5+json"
+	t.debug = false
+}
+
+func (t * Twitch) debugPrint(method string, value string) {
+	if t.debug {
+		log.Println(fmt.Sprintf("DEBUG | %s", value))
+	}
 }
 
 func (t * Twitch) newRequest(httpMethod string, url string, body io.Reader) (*http.Request, error){
@@ -30,8 +40,13 @@ func (t * Twitch) Testerino() {
 
 }
 
+func (t * Twitch) Debug() {
+	t.debug = true
+}
+
 func NewClient(clientId string) *Twitch{
 	t := &Twitch{}
+	t.clientID = clientId
 	t.defaultInit()
 
 	return t
