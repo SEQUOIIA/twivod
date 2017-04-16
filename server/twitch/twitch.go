@@ -13,7 +13,7 @@ type Twitch struct {
 	clientID string
 	apiVersion string
 	debug bool
-	Db * db.Db
+	Db * db.Dbc
 }
 
 const OfficialTwitchAPIEndpoint string = "https://api.twitch.tv"
@@ -22,7 +22,7 @@ func (t * Twitch) defaultInit() {
 	t.httpCli = http.DefaultClient
 	t.apiVersion = "application/vnd.twitchtv.v5+json"
 	t.debug = false
-	t.Db = db.NewDb("./data.db")
+	t.Db = db.NewDbc("./data.db")
 }
 
 func (t * Twitch) debugPrint(method string, value string) {

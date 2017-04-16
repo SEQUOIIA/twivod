@@ -20,11 +20,10 @@ func main() {
 			log.Fatal(err)
 		}
 
-		stmt, err := T.Db.GetDb().Prepare("INSERT INTO twitch_user (twitch_id, name, bio, created_at, display_name, logo, type, updated_at) VALUES (?,?,?,?,?,?,?,?)")
 		for i := 0; i < len(users); i++ {
 			user := users[i]
 			fmt.Println(user.Name)
-			_, err := stmt.Exec(user.Id, user.Name, user.Bio, user.CreatedAt, user.DisplayName, user.Logo, user.Type, user.UpdatedAt)
+			err = T.Db.AddUser(user)
 			if err != nil {
 				log.Fatal(err)
 			}

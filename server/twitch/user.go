@@ -3,18 +3,9 @@ package twitch
 import (
 	"fmt"
 	"encoding/json"
+	"github.com/sequoiia/twiVod/server/twitch/model"
 )
 
-type User struct {
-	Id string
-	Bio string
-	CreatedAt string
-	DisplayName string
-	Logo string
-	Name string
-	Type string
-	UpdatedAt string
-}
 
 type userByUsernameResult struct {
 	Id string `json:"_id"`
@@ -36,7 +27,7 @@ type getUsersByUsernameResult struct {
 // Documentation URL: https://dev.twitch.tv/docs/v5/guides/using-the-twitch-api/#translating-from-user-names-to-user-ids
 // Query parameters:
 //   login : comma separated usernames
-func (t * Twitch) GetUsersByUsername(users []string) ([]User, error) {
+func (t * Twitch) GetUsersByUsername(users []string) ([]model.User, error) {
 	req, err := t.newRequest("GET", fmt.Sprintf("%s%s", OfficialTwitchAPIEndpoint, "/kraken/users"), nil)
 	if err != nil {
 		return nil, err
@@ -64,7 +55,7 @@ func (t * Twitch) GetUsersByUsername(users []string) ([]User, error) {
 	}
 
 	var result getUsersByUsernameResult
-	var payload []User
+	var payload []model.User
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		return nil, err
@@ -72,7 +63,7 @@ func (t * Twitch) GetUsersByUsername(users []string) ([]User, error) {
 
 	for i := 0; i < len(result.Users); i++ {
 		r := result.Users[i]
-		u := User{}
+		u := model.User{}
 		u.Name = r.Name
 		u.Bio = r.Bio
 		u.CreatedAt = r.CreatedAt
@@ -83,6 +74,5 @@ func (t * Twitch) GetUsersByUsername(users []string) ([]User, error) {
 		u.UpdatedAt = r.UpdatedAt
 		payload = append(payload, u)
 	}
-
 	return payload, nil
 }

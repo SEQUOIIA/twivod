@@ -6,12 +6,17 @@ import (
 	"os"
 )
 
-type Db struct {
-	db * sql.DB
+type Dbc struct {
+	Dbc * sql.DB
+	ps preppedStatements
 }
 
-func NewDb(path string) *Db {
-	d := &Db{}
+type preppedStatements struct {
+	addTwitchUser * sql.Stmt
+}
+
+func NewDbc(path string) *Dbc {
+	d := &Dbc{}
 
 	var (
 		createDatabase bool
@@ -24,20 +29,20 @@ func NewDb(path string) *Db {
 		createDatabase = false
 	}
 
-	d.db, err = sql.Open("sqlite3", path)
+	d.Dbc, err = sql.Open("sqlite3", path)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	d.db.SetMaxOpenConns(1)
+	d.Dbc.SetMaxOpenConns(1)
 
-	_, err = d.db.Exec("PRAGMA journal_mode=WAL")
+	_, err = d.Dbc.Exec("PRAGMA journal_mode=WAL")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if createDatabase {
-		err = d.createDb()
+		err = d.createDbc()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -46,11 +51,11 @@ func NewDb(path string) *Db {
 	return d
 }
 
-func (d * Db) GetDb() *sql.DB {
-	return d.db
+func (d * Dbc) GetDbc() *sql.DB {
+	return d.Dbc
 }
 
-func (d * Db) createDb() error {
+func (d * Dbc) createDbc() error {
 	// Create twitch_user table
 	err := d.createTwitchUserTable()
 	if err != nil {
@@ -60,8 +65,8 @@ func (d * Db) createDb() error {
 	return nil
 }
 
-func (d * Db) createTwitchUserTable() error{
-	_, err := d.db.Exec("CREATE TABLE twitch_user " +
+func (d * Dbc) createTwitchUserTable() error{
+	_, err := d.Dbc.Exec("CREATE TABLE twitch_user " +
 		"(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
 		"twitch_id TEXT, " +
 		"name TEXT, " +
