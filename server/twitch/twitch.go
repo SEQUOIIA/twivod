@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"fmt"
+	"github.com/sequoiia/twiVod/server/db"
 )
 
 type Twitch struct {
@@ -12,6 +13,7 @@ type Twitch struct {
 	clientID string
 	apiVersion string
 	debug bool
+	Db * db.Db
 }
 
 const OfficialTwitchAPIEndpoint string = "https://api.twitch.tv"
@@ -20,6 +22,7 @@ func (t * Twitch) defaultInit() {
 	t.httpCli = http.DefaultClient
 	t.apiVersion = "application/vnd.twitchtv.v5+json"
 	t.debug = false
+	t.Db = db.NewDb("./data.db")
 }
 
 func (t * Twitch) debugPrint(method string, value string) {
