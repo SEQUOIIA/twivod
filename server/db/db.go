@@ -13,6 +13,7 @@ type Dbc struct {
 
 type preppedStatements struct {
 	addTwitchUser * sql.Stmt
+	getTwitchUser * sql.Stmt
 }
 
 func NewDbc(path string) *Dbc {

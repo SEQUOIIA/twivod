@@ -5,6 +5,8 @@ import (
 	"log"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/sequoiia/twiVod/server/db"
+	"github.com/sequoiia/twiVod/server/twitch/model"
 )
 
 var T *twitch.Twitch
@@ -15,18 +17,42 @@ func main() {
 
 	// Run in separate goroutine
 	go func() {
-		users, err := T.GetUsersByUsername([]string{"nalcs1", "sequoiia"})
+		var userRaw []string = []string{"nalcs1", "sequoiia"}
+		var usersToGet []string = []string{}
+		var usersTotal []model.User
+
+		for i := 0; i < len(userRaw); i++ {
+			twitchUsername := userRaw[i]
+			u, err := T.Db.GetUserByTwitchUsername(twitchUsername)
+			if err != nil {
+				if err == db.ErrNoRow {
+					log.Println(fmt.Sprintf("Remote: %s", twitchUsername))
+					usersToGet = append(usersToGet, twitchUsername)
+					continue
+				} else {
+					log.Fatal(err)
+				}
+			}
+			log.Println(fmt.Sprintf("Db: %s", twitchUsername))
+			usersTotal = append(usersTotal, u)
+		}
+
+		users, err := T.GetUsersByUsername(usersToGet)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		for i := 0; i < len(users); i++ {
-			user := users[i]
+		usersTotal = append(usersTotal, users...)
+
+		for i := 0; i < len(usersTotal); i++ {
+			user := usersTotal[i]
 			fmt.Println(user.Name)
+			/*
 			err = T.Db.AddUser(user)
 			if err != nil {
 				log.Fatal(err)
 			}
+			*/
 		}
 	}()
 
