@@ -8,14 +8,14 @@ import (
 
 
 type userByUsernameResult struct {
-	Id string `json:"_id"`
-	Bio string `json:"bio"`
-	CreatedAt string `json:"created_at"`
-	DisplayName string `json:"display_name"`
-	Logo string `json:"logo"`
-	Name string `json:"name"`
-	Type string `json:"type"`
-	UpdatedAt string `json:"updated_at"`
+	Id * string `json:"_id"`
+	Bio * string `json:"bio"`
+	CreatedAt * string `json:"created_at"`
+	DisplayName * string `json:"display_name"`
+	Logo * string `json:"logo"`
+	Name * string `json:"name"`
+	Type * string `json:"type"`
+	UpdatedAt * string `json:"updated_at"`
 }
 
 type getUsersByUsernameResult struct {
@@ -64,15 +64,28 @@ func (t * Twitch) GetUsersByUsername(users []string) ([]model.User, error) {
 	for i := 0; i < len(result.Users); i++ {
 		r := result.Users[i]
 		u := model.User{}
-		u.Name = r.Name
-		u.Bio = r.Bio
-		u.CreatedAt = r.CreatedAt
-		u.DisplayName = r.DisplayName
-		u.Id = r.Id
-		u.Logo = r.Logo
-		u.Type = r.Type
-		u.UpdatedAt = r.UpdatedAt
+		u.Name = t.nilCheckerString(u.Name, r.Name)
+		u.Bio = t.nilCheckerString(u.Bio, r.Bio)
+		u.CreatedAt = t.nilCheckerString(u.CreatedAt, r.CreatedAt)
+		u.DisplayName = t.nilCheckerString(u.DisplayName, r.DisplayName)
+		u.Id = t.nilCheckerString(u.Id, r.Id)
+		u.Logo = t.nilCheckerString(u.Logo, r.Logo)
+		u.Type = t.nilCheckerString(u.Type, r.Type)
+		u.UpdatedAt = t.nilCheckerString(u.UpdatedAt, r.UpdatedAt)
 		payload = append(payload, u)
+
 	}
 	return payload, nil
+}
+
+func (t * Twitch) nilCheckerString(a string, b * string) string{
+	if b != nil {
+		fmt.Println("b does not equal nil")
+		a = *b
+	} else {
+		fmt.Println("b equals nil")
+		a = ""
+	}
+
+	return a
 }

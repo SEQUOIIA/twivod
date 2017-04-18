@@ -58,8 +58,11 @@ func (d * Dbc) GetUserByTwitchUsername(twitchUsername string) (model.User, error
 	}
 
 	var u model.User
-	result := d.ps.getTwitchUser.QueryRow(strings.ToLower(twitchUsername))
-	//.Scan(&u.Id, &u.Name, &u.Bio, &u.CreatedAt, &u.DisplayName, &u.Logo, &u.Type, &u.UpdatedAt)
+	result := d.ps.getTwitchUser.QueryRow(strings.ToLower(twitchUsername)).Scan(&u.Id, &u.Name, &u.Bio, &u.CreatedAt, &u.DisplayName, &u.Logo, &u.Type, &u.UpdatedAt)
+	if result != nil {
+		return model.User{}, d.checkUserResultErr(result)
+	}
+	/*
 	err := result.Scan(&u.Id)
 	if err != nil {
 		e := d.checkUserResultErr(err)
@@ -107,6 +110,7 @@ func (d * Dbc) GetUserByTwitchUsername(twitchUsername string) (model.User, error
 		e := d.checkUserResultErr(err)
 		return model.User{}, e
 	}
+	*/
 
 	return u, nil
 }

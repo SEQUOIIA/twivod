@@ -30,6 +30,7 @@ func main() {
 					usersToGet = append(usersToGet, twitchUsername)
 					continue
 				} else {
+					log.Println("Weird")
 					log.Fatal(err)
 				}
 			}
@@ -40,6 +41,14 @@ func main() {
 		users, err := T.GetUsersByUsername(usersToGet)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		for i := 0; i < len(users); i++ {
+			user := users[i]
+			err = T.Db.AddUser(user)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 
 		usersTotal = append(usersTotal, users...)
