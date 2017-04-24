@@ -10,3 +10,9 @@ type User struct {
 	Type string
 	UpdatedAt string
 }
+
+
+type UserTracked struct {
+	User User
+	Tracking bool
+}
