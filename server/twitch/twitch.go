@@ -27,7 +27,7 @@ func (t * Twitch) defaultInit() {
 
 func (t * Twitch) debugPrint(method string, value string) {
 	if t.debug {
-		log.Println(fmt.Sprintf("DEBUG | %s", value))
+		log.Println(fmt.Sprintf("DEBUG | %s %s", method, value))
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"github.com/sequoiia/twiVod/server/twitch/model"
+	"strings"
 )
 
 
@@ -22,6 +23,8 @@ type getUsersByUsernameResult struct {
 	Total int `json:"_total"`
 	Users []userByUsernameResult `json:"users"`
 }
+
+const debugM string = "twiVod.twitch.Twitch.GetUsersByUsername ->"
 
 // Endpoint: /kraken/users
 // Documentation URL: https://dev.twitch.tv/docs/v5/guides/using-the-twitch-api/#translating-from-user-names-to-user-ids
@@ -44,7 +47,10 @@ func (t * Twitch) GetUsersByUsername(users []string) ([]model.User, error) {
 			usersFormatted = fmt.Sprintf("%s,", usersFormatted)
 		}
 	}
-	t.debugPrint("twiVod.twitch.Twitch.GetUsersByUsername -> ", usersFormatted)
+
+	if strings.Compare("", usersFormatted) != 0 {
+		t.debugPrint(debugM, usersFormatted)
+	}
 
 	queryParameters.Add("login", usersFormatted)
 	req.URL.RawQuery = queryParameters.Encode()
@@ -80,10 +86,10 @@ func (t * Twitch) GetUsersByUsername(users []string) ([]model.User, error) {
 
 func (t * Twitch) nilCheckerString(a string, b * string) string{
 	if b != nil {
-		fmt.Println("b does not equal nil")
+		t.debugPrint(debugM, "b does not equal nil")
 		a = *b
 	} else {
-		fmt.Println("b equals nil")
+		t.debugPrint(debugM, "b equals nil")
 		a = ""
 	}
 

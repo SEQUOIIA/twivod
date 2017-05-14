@@ -63,12 +63,7 @@ func main() {
 		for i := 0; i < len(usersTotal); i++ {
 			user := usersTotal[i]
 			fmt.Println(user.Name)
-			/*
-			err = T.Db.AddUser(user)
-			if err != nil {
-				log.Fatal(err)
-			}
-			*/
+			
 		}
 	}()
 
