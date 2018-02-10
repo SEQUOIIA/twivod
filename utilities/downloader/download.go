@@ -26,7 +26,6 @@ func Download(vod *models.TwitchVodOptions) (error){
 	if vodInfo.Type != "404" {
 		fmt.Printf("Downloading VOD '%v' from Twitch channel '%v'\n",  vodInfo.ID, vodInfo.Channel)
 		var token models.HlsVodToken = getAccessToken(HttpClient, vodInfo.ID)
-//		var vodKraken models.VodInfoKraken = getVodInfo(HttpClient, vodInfo)
 
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vodInfo.ID, token.Sig, token.Token), nil)
 		if err != nil {
@@ -117,7 +116,7 @@ func Download(vod *models.TwitchVodOptions) (error){
 		channel := make(chan models.TwitchVodSegment)
 
 		for i := startPos; i <= (concurrentAmount + startPos); i++ {
-			go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[i].URI), i, channel)
+			go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[i].URI), i, channel, 5)
 		}
 
 		buf := make([]io.ReadCloser, endPos)
@@ -137,7 +136,7 @@ func Download(vod *models.TwitchVodOptions) (error){
 				pw++
 			}
 			if pd < endPos {
-				go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[pd].URI), pd, channel)
+				go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[pd].URI), pd, channel, 5)
 				pd++
 			}
 		}
@@ -149,15 +148,19 @@ func Download(vod *models.TwitchVodOptions) (error){
 	return nil
 }
 
-func downloadSegment(uri string, vodId int, channel chan models.TwitchVodSegment) {
+func downloadSegment(uri string, vodId int, channel chan models.TwitchVodSegment, retries int) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		log.Fatal(err)
+		if retries > 0 {
+			downloadSegment(uri, vodId, channel, retries - 1)
+		}
 	}
 
 	resp, err := HttpClient.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		if retries > 0 {
+			downloadSegment(uri, vodId, channel, retries - 1)
+		}
 	}
 
 	channel <- models.TwitchVodSegment{vodId, resp.Body}
