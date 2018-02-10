@@ -5,7 +5,7 @@ import (
 	"io"
 	"log"
 	"fmt"
-	"github.com/sequoiia/twiVod/server/db"
+	"github.com/sequoiia/twivod/server/db"
 )
 
 type Twitch struct {

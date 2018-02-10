@@ -1,32 +1,44 @@
 package downloader
 
 import (
-	"github.com/sequoiia/twiVod/models"
-	"github.com/sequoiia/twiVod/utilities/parser"
+	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"log"
-	"github.com/grafov/m3u8"
-	"bufio"
 	"io"
+	"log"
+	"net/http"
 	"os"
-	"bytes"
+	"time"
+
+	"github.com/grafov/m3u8"
+	"github.com/sequoiia/twivod/models"
+	"github.com/sequoiia/twivod/utilities/parser"
 )
 
 var HttpClient *http.Client
 
-func Download(vod *models.TwitchVodOptions) (error){
+func Download(vod *models.TwitchVodOptions, bwlimit int64) error {
 	vodInfo := parser.VodInfo(vod.Url)
 
-	if HttpClient == nil {
-		HttpClient = http.DefaultClient
+	if vodInfo.Type == models.Unknown {
+		return errors.New("unknown URL")
 	}
 
-	if vodInfo.Type != "404" {
-		fmt.Printf("Downloading VOD '%v' from Twitch channel '%v'\n",  vodInfo.ID, vodInfo.Channel)
+	if HttpClient == nil {
+		HttpClient = &http.Client{Timeout: 6 * time.Second}
+	}
+
+	if vodInfo.Type == models.VOD {
+		vodDetails, err := GetVODDetails(vodInfo.ID, HttpClient)
+		if err != nil {
+			log.Fatal(err)
+		}
+		vodInfo.Channel = vodDetails.Channel.Name
+
+		fmt.Printf("Downloading VOD '%v' from Twitch channel '%v'\n", vodInfo.ID, vodInfo.Channel)
 		var token models.HlsVodToken = getAccessToken(HttpClient, vodInfo.ID)
-//		var vodKraken models.VodInfoKraken = getVodInfo(HttpClient, vodInfo)
 
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vodInfo.ID, token.Sig, token.Token), nil)
 		if err != nil {
@@ -50,7 +62,7 @@ func Download(vod *models.TwitchVodOptions) (error){
 		if err != nil {
 			log.Fatal(err)
 		}
-		
+
 		resp, err = HttpClient.Do(req)
 		if err != nil {
 			log.Fatal(err)
@@ -96,7 +108,7 @@ func Download(vod *models.TwitchVodOptions) (error){
 		log.Println(vodEndpoint)
 
 		vod.FileName = fmt.Sprintf("%s.ts", vodInfo.ID)
-		vod.Name = fmt.Sprintf("%s_%s", vodInfo.Channel,vodInfo.ID)
+		vod.Name = fmt.Sprintf("%s_%s", vodInfo.Channel, vodInfo.ID)
 
 		log.Println(endPos)
 
@@ -116,28 +128,30 @@ func Download(vod *models.TwitchVodOptions) (error){
 
 		channel := make(chan models.TwitchVodSegment)
 
+		bwLimitCorrected := bwlimit / int64(concurrentAmount)
+
 		for i := startPos; i <= (concurrentAmount + startPos); i++ {
-			go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[i].URI), i, channel)
+			go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[i].URI), i, channel, 5, bwLimitCorrected)
 		}
 
-		buf := make([]io.ReadCloser, endPos)
+		buf := make([]*bytes.Buffer, endPos)
 		pw := startPos
 		pd := startPos + concurrentAmount
 
 		for pw < endPos {
 			response := <-channel
-			buf[response.Id] = response.ResponseBody
+			buf[response.Id] = response.Buf
 			for pw < endPos && buf[pw] != nil {
 				_, err := io.Copy(vod.Writer, buf[pw])
 				if err != nil {
-					log.Fatal(err)
+					log.Panic(err)
 				}
-				buf[pw].Close()
 				log.Printf("Part %d has been downloaded.", pw)
+				buf[pw] = nil
 				pw++
 			}
 			if pd < endPos {
-				go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[pd].URI), pd, channel)
+				go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[pd].URI), pd, channel, 5, bwLimitCorrected)
 				pd++
 			}
 		}
@@ -149,16 +163,51 @@ func Download(vod *models.TwitchVodOptions) (error){
 	return nil
 }
 
-func downloadSegment(uri string, vodId int, channel chan models.TwitchVodSegment) {
+func downloadSegment(uri string, vodId int, channel chan models.TwitchVodSegment, retries int, bwLimit int64) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		log.Fatal(err)
+		if retries > 0 {
+			downloadSegment(uri, vodId, channel, retries-1, bwLimit)
+		}
 	}
 
 	resp, err := HttpClient.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		if retries > 0 {
+			downloadSegment(uri, vodId, channel, retries-1, bwLimit)
+		}
 	}
 
-	channel <- models.TwitchVodSegment{vodId, resp.Body}
+	buf := bytes.NewBuffer(nil)
+	for range time.Tick(1 * time.Second) {
+		_, err := io.CopyN(buf, resp.Body, bwLimit)
+		if err != nil {
+			break
+		}
+	}
+
+	resp.Body.Close()
+	channel <- models.TwitchVodSegment{vodId, buf}
+}
+
+func GetVODDetails(id string, cli *http.Client) (models.VODDetails, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/kraken/videos/v%s", id), nil)
+	if err != nil {
+		return models.VODDetails{}, err
+	}
+
+	req.Header.Set("client-id", models.TwitchConfig.Client_id)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return models.VODDetails{}, err
+	}
+
+	var payload models.VODDetails
+
+	err = json.NewDecoder(resp.Body).Decode(&payload); if err != nil {
+		return models.VODDetails{}, err
+	}
+
+	return payload, nil
 }

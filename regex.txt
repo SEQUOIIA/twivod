@@ -6,3 +6,7 @@ Match VOD file(retrieve filename)
 
 MATCH HLS VOD URL & m3u8 file
 	(.*ttvnw.net\/.*?\/.*?\/.*?\/.*?\/.*?)\/(.*)
+
+
+Match VODS & live streams
+	(?:https?:\/\/)?(?:www\.)?twitch.tv\/(videos\/(?P<videos>\w+)|(?P<livestream>\w+))

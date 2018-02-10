@@ -3,7 +3,7 @@ package twitch
 import (
 	"fmt"
 	"encoding/json"
-	"github.com/sequoiia/twiVod/server/twitch/model"
+	"github.com/sequoiia/twivod/server/twitch/model"
 	"strings"
 )
 

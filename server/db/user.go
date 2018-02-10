@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/sequoiia/twiVod/server/twitch/model"
+	"github.com/sequoiia/twivod/server/twitch/model"
 	"database/sql"
 	"errors"
 	"strings"

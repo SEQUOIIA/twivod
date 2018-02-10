@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/sequoiia/twiVod/server/twitch"
+	"github.com/sequoiia/twivod/server/twitch"
 	"log"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/sequoiia/twiVod/server/db"
-	"github.com/sequoiia/twiVod/server/twitch/model"
+	"github.com/sequoiia/twivod/server/db"
+	"github.com/sequoiia/twivod/server/twitch/model"
 )
 
 var T *twitch.Twitch

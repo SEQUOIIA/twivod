@@ -7,7 +7,7 @@ import (
     "io/ioutil"
     "bytes"
     "sync"
-    "github.com/sequoiia/twiVod/models"
+    "github.com/sequoiia/twivod/models"
     "encoding/json"
     "fmt"
     "regexp"
