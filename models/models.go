@@ -1,7 +1,7 @@
 package models
 
 import (
-	"io"
+	"bytes"
 	"time"
 )
 
@@ -253,5 +253,5 @@ type TwitchUsersSearch struct {
 
 type TwitchVodSegment struct {
 	Id           int
-	ResponseBody io.ReadCloser
+	Buf *bytes.Buffer
 }

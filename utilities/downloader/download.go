@@ -125,28 +125,30 @@ func Download(vod *models.TwitchVodOptions) error {
 
 		channel := make(chan models.TwitchVodSegment)
 
+		var bwLimit int64 = 1000 * 1000
+
 		for i := startPos; i <= (concurrentAmount + startPos); i++ {
-			go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[i].URI), i, channel, 5)
+			go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[i].URI), i, channel, 5, bwLimit)
 		}
 
-		buf := make([]io.ReadCloser, endPos)
+		buf := make([]*bytes.Buffer, endPos)
 		pw := startPos
 		pd := startPos + concurrentAmount
 
 		for pw < endPos {
 			response := <-channel
-			buf[response.Id] = response.ResponseBody
+			buf[response.Id] = response.Buf
 			for pw < endPos && buf[pw] != nil {
 				_, err := io.Copy(vod.Writer, buf[pw])
 				if err != nil {
-					log.Fatal(err)
+					log.Panic(err)
 				}
-				buf[pw].Close()
 				log.Printf("Part %d has been downloaded.", pw)
+				buf[pw] = nil
 				pw++
 			}
 			if pd < endPos {
-				go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[pd].URI), pd, channel, 5)
+				go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[pd].URI), pd, channel, 5, bwLimit)
 				pd++
 			}
 		}
@@ -158,22 +160,31 @@ func Download(vod *models.TwitchVodOptions) error {
 	return nil
 }
 
-func downloadSegment(uri string, vodId int, channel chan models.TwitchVodSegment, retries int) {
+func downloadSegment(uri string, vodId int, channel chan models.TwitchVodSegment, retries int, bwLimit int64) {
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		if retries > 0 {
-			downloadSegment(uri, vodId, channel, retries-1)
+			downloadSegment(uri, vodId, channel, retries-1, bwLimit)
 		}
 	}
 
 	resp, err := HttpClient.Do(req)
 	if err != nil {
 		if retries > 0 {
-			downloadSegment(uri, vodId, channel, retries-1)
+			downloadSegment(uri, vodId, channel, retries-1, bwLimit)
 		}
 	}
 
-	channel <- models.TwitchVodSegment{vodId, resp.Body}
+	buf := bytes.NewBuffer(nil)
+	for range time.Tick(1 * time.Second) {
+		_, err := io.CopyN(buf, resp.Body, bwLimit)
+		if err != nil {
+			break
+		}
+	}
+
+	resp.Body.Close()
+	channel <- models.TwitchVodSegment{vodId, buf}
 }
 
 func GetVODDetails(id string, cli *http.Client) (models.VODDetails, error) {
