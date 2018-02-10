@@ -9,4 +9,4 @@ MATCH HLS VOD URL & m3u8 file
 
 
 Match VODS & live streams
-	https?:\/\/(?:www\.)?twitch.tv\/(videos\/(?P<videos>\w+)|(?P<livestream>\w+))
+	(?:https?:\/\/)?(?:www\.)?twitch.tv\/(videos\/(?P<videos>\w+)|(?P<livestream>\w+))
