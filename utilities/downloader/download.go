@@ -1,30 +1,38 @@
 package downloader
 
 import (
-	"github.com/sequoiia/twiVod/models"
-	"github.com/sequoiia/twiVod/utilities/parser"
+	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"log"
-	"github.com/grafov/m3u8"
-	"bufio"
 	"io"
+	"log"
+	"net/http"
 	"os"
-	"bytes"
+
+	"github.com/grafov/m3u8"
+	"github.com/sequoiia/twiVod/models"
+	"github.com/sequoiia/twiVod/utilities/parser"
 )
 
 var HttpClient *http.Client
 
-func Download(vod *models.TwitchVodOptions) (error){
+func Download(vod *models.TwitchVodOptions) error {
 	vodInfo := parser.VodInfo(vod.Url)
 
 	if HttpClient == nil {
 		HttpClient = http.DefaultClient
 	}
 
+	vodDetails, err := GetVODDetails(vodInfo.ID, HttpClient)
+	if err != nil {
+		log.Fatal(err)
+	}
+	vodInfo.Channel = vodDetails.Channel.Name
+
 	if vodInfo.Type != "404" {
-		fmt.Printf("Downloading VOD '%v' from Twitch channel '%v'\n",  vodInfo.ID, vodInfo.Channel)
+		fmt.Printf("Downloading VOD '%v' from Twitch channel '%v'\n", vodInfo.ID, vodInfo.Channel)
 		var token models.HlsVodToken = getAccessToken(HttpClient, vodInfo.ID)
 
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vodInfo.ID, token.Sig, token.Token), nil)
@@ -49,7 +57,7 @@ func Download(vod *models.TwitchVodOptions) (error){
 		if err != nil {
 			log.Fatal(err)
 		}
-		
+
 		resp, err = HttpClient.Do(req)
 		if err != nil {
 			log.Fatal(err)
@@ -95,7 +103,7 @@ func Download(vod *models.TwitchVodOptions) (error){
 		log.Println(vodEndpoint)
 
 		vod.FileName = fmt.Sprintf("%s.ts", vodInfo.ID)
-		vod.Name = fmt.Sprintf("%s_%s", vodInfo.Channel,vodInfo.ID)
+		vod.Name = fmt.Sprintf("%s_%s", vodInfo.Channel, vodInfo.ID)
 
 		log.Println(endPos)
 
@@ -152,16 +160,38 @@ func downloadSegment(uri string, vodId int, channel chan models.TwitchVodSegment
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		if retries > 0 {
-			downloadSegment(uri, vodId, channel, retries - 1)
+			downloadSegment(uri, vodId, channel, retries-1)
 		}
 	}
 
 	resp, err := HttpClient.Do(req)
 	if err != nil {
 		if retries > 0 {
-			downloadSegment(uri, vodId, channel, retries - 1)
+			downloadSegment(uri, vodId, channel, retries-1)
 		}
 	}
 
 	channel <- models.TwitchVodSegment{vodId, resp.Body}
+}
+
+func GetVODDetails(id string, cli *http.Client) (models.VODDetails, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/kraken/videos/v%s", id), nil)
+	if err != nil {
+		return models.VODDetails{}, err
+	}
+
+	req.Header.Set("client-id", models.TwitchConfig.Client_id)
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return models.VODDetails{}, err
+	}
+
+	var payload models.VODDetails
+
+	err = json.NewDecoder(resp.Body).Decode(&payload); if err != nil {
+		return models.VODDetails{}, err
+	}
+
+	return payload, nil
 }

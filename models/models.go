@@ -17,9 +17,63 @@ const VOD StreamType = "videos"
 // Unknown is a StreamType
 const Unknown StreamType = "unknown"
 
+type StreamTypeResult struct {
+	Type  StreamType
+	Value string
+}
+
+type VODDetails  struct {
+	Title              string      `json:"title"`
+	Description        interface{} `json:"description"`
+	DescriptionHTML    interface{} `json:"description_html"`
+	BroadcastID        int64       `json:"broadcast_id"`
+	BroadcastType      string      `json:"broadcast_type"`
+	Status             string      `json:"status"`
+	Language           string      `json:"language"`
+	TagList            string      `json:"tag_list"`
+	Views              int         `json:"views"`
+	CreatedAt          time.Time   `json:"created_at"`
+	PublishedAt        time.Time   `json:"published_at"`
+	URL                string      `json:"url"`
+	ID                 string      `json:"_id"`
+	RecordedAt         time.Time   `json:"recorded_at"`
+	Game               string      `json:"game"`
+	Length             int         `json:"length"`
+	Preview            string      `json:"preview"`
+	AnimatedPreviewURL string      `json:"animated_preview_url"`
+	Thumbnails         []struct {
+		Type string `json:"type"`
+		URL  string `json:"url"`
+	} `json:"thumbnails"`
+	Fps struct {
+		One60P30   float64 `json:"160p30"`
+		Three60P30 float64 `json:"360p30"`
+		Four80P30  float64 `json:"480p30"`
+		Seven20P30 float64 `json:"720p30"`
+		Seven20P60 float64 `json:"720p60"`
+		Chunked    float64 `json:"chunked"`
+	} `json:"fps"`
+	Resolutions struct {
+		One60P30   string `json:"160p30"`
+		Three60P30 string `json:"360p30"`
+		Four80P30  string `json:"480p30"`
+		Seven20P30 string `json:"720p30"`
+		Seven20P60 string `json:"720p60"`
+		Chunked    string `json:"chunked"`
+	} `json:"resolutions"`
+	Channel struct {
+		Name        string `json:"name"`
+		DisplayName string `json:"display_name"`
+	} `json:"channel"`
+	Links struct {
+		Self    string `json:"self"`
+		Channel string `json:"channel"`
+	} `json:"_links"`
+}
+
 type VODinfo struct {
 	Channel string
-	Type    string
+	Type    StreamType
 	ID      string
 	Url     string
 }

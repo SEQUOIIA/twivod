@@ -9,19 +9,17 @@ import (
 )
 
 func VodInfo(url string) models.VODinfo {
-	r := regexp.MustCompile(`.*twitch.tv\/(.*?)\/(.)\/(.*[0-9])`)
-	if r.MatchString(url) == true {
-		vod := models.VODinfo{Channel: r.FindStringSubmatch(url)[1], Type: r.FindStringSubmatch(url)[2], ID: r.FindStringSubmatch(url)[3], Url: r.FindStringSubmatch(url)[0]}
-		return vod
+	urlType := DetermineStreamType(url)
+
+	if urlType.Type == models.VOD {
+		return models.VODinfo{Channel: "", Type: urlType.Type, ID: urlType.Value}
 	} else {
-		fmt.Println("Sorry, but the URL you submitted doesn't look like a Twitch.TV VOD URL. Try again.")
-		vod := models.VODinfo{Type: "404"}
-		return vod
+		return models.VODinfo{Type: models.Unknown}
 	}
 }
 
 // DetermineStreamType runs a regex expression that determines whether a live stream or a VOD has been given
-func DetermineStreamType(url string) models.StreamType {
+func DetermineStreamType(url string) models.StreamTypeResult {
 	r := regexp.MustCompile(`(?:https?:\/\/)?(?:www\.)?twitch.tv\/(videos\/(?P<videos>\w+)|(?P<livestream>\w+))`)
 	if r.MatchString(url) {
 		match := r.FindStringSubmatch(url)
@@ -41,10 +39,10 @@ func DetermineStreamType(url string) models.StreamType {
 				switch k {
 				case "livestream":
 					fmt.Printf("Live stream detected. Looking up %s\n", v)
-					return models.Livestream
+					return models.StreamTypeResult{Type: models.Livestream}
 				case "videos":
 					fmt.Println("VOD detected.")
-					return models.VOD
+					return models.StreamTypeResult{Type: models.VOD, Value: v}
 				}
 			}
 		} else {
@@ -53,5 +51,5 @@ func DetermineStreamType(url string) models.StreamType {
 
 	}
 
-	return models.Unknown
+	return models.StreamTypeResult{Type: models.Unknown}
 }
