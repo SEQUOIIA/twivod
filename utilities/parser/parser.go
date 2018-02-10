@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/sequoiia/twiVod/models"
+	"github.com/sequoiia/twivod/models"
 )
 
 func VodInfo(url string) models.VODinfo {

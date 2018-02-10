@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/grafov/m3u8"
-	"github.com/sequoiia/twiVod/models"
-	"github.com/sequoiia/twiVod/utilities/parser"
+	"github.com/sequoiia/twivod/models"
+	"github.com/sequoiia/twivod/utilities/parser"
 )
 
 var HttpClient *http.Client
@@ -22,18 +22,21 @@ var HttpClient *http.Client
 func Download(vod *models.TwitchVodOptions) error {
 	vodInfo := parser.VodInfo(vod.Url)
 
+	if vodInfo.Type == models.Unknown {
+		return errors.New("unknown URL")
+	}
+
 	if HttpClient == nil {
 		HttpClient = &http.Client{Timeout: 6 * time.Second}
 	}
 
+	if vodInfo.Type == models.VOD {
+		vodDetails, err := GetVODDetails(vodInfo.ID, HttpClient)
+		if err != nil {
+			log.Fatal(err)
+		}
+		vodInfo.Channel = vodDetails.Channel.Name
 
-	vodDetails, err := GetVODDetails(vodInfo.ID, HttpClient)
-	if err != nil {
-		log.Fatal(err)
-	}
-	vodInfo.Channel = vodDetails.Channel.Name
-
-	if vodInfo.Type != "404" {
 		fmt.Printf("Downloading VOD '%v' from Twitch channel '%v'\n", vodInfo.ID, vodInfo.Channel)
 		var token models.HlsVodToken = getAccessToken(HttpClient, vodInfo.ID)
 

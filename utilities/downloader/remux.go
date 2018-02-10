@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"bufio"
 	"log"
-	"github.com/sequoiia/twiVod/models"
+	"github.com/sequoiia/twivod/models"
 	"os"
 )
 
