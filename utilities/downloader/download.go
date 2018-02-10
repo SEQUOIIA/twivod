@@ -19,7 +19,7 @@ import (
 
 var HttpClient *http.Client
 
-func Download(vod *models.TwitchVodOptions) error {
+func Download(vod *models.TwitchVodOptions, bwlimit int64) error {
 	vodInfo := parser.VodInfo(vod.Url)
 
 	if vodInfo.Type == models.Unknown {
@@ -128,10 +128,10 @@ func Download(vod *models.TwitchVodOptions) error {
 
 		channel := make(chan models.TwitchVodSegment)
 
-		var bwLimit int64 = 1000 * 1000
+		bwLimitCorrected := bwlimit / int64(concurrentAmount)
 
 		for i := startPos; i <= (concurrentAmount + startPos); i++ {
-			go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[i].URI), i, channel, 5, bwLimit)
+			go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[i].URI), i, channel, 5, bwLimitCorrected)
 		}
 
 		buf := make([]*bytes.Buffer, endPos)
@@ -151,7 +151,7 @@ func Download(vod *models.TwitchVodOptions) error {
 				pw++
 			}
 			if pd < endPos {
-				go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[pd].URI), pd, channel, 5, bwLimit)
+				go downloadSegment(fmt.Sprintf("%s%s", vodEndpoint, pMediaPlaylist.Segments[pd].URI), pd, channel, 5, bwLimitCorrected)
 				pd++
 			}
 		}

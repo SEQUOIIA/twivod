@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"os"
 
 	"github.com/sequoiia/twivod/models"
@@ -14,6 +15,7 @@ import (
 var (
 	Verbose bool
 	ConcurrentDownloads int
+	BandwidthLimit int64
 )
 
 var rootCmd = &cobra.Command{
@@ -23,7 +25,10 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		vodOptions := &models.TwitchVodOptions{Url: args[0], MaxConcurrentDownloads: ConcurrentDownloads}
 
-		err := downloader.Download(vodOptions)
+		if BandwidthLimit != math.MaxInt64 {
+			BandwidthLimit = BandwidthLimit * 1000
+		}
+		err := downloader.Download(vodOptions, BandwidthLimit)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -50,5 +55,6 @@ func Execute() {
 func Init() {
 	// rootCmd
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "Verbose output")
-	rootCmd.LocalFlags().IntVarP(&ConcurrentDownloads, "concurrent-download", "c", 1, "The amount of video segments downloaded at the same time.")
+	rootCmd.PersistentFlags().IntVarP(&ConcurrentDownloads, "concurrent-download", "c", 1, "The amount of video segments downloaded at the same time.")
+	rootCmd.PersistentFlags().Int64VarP(&BandwidthLimit, "bwlimit", "b", math.MaxInt64, "Limits download speed, value is in kb/s")
 }
