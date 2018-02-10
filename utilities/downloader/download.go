@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/grafov/m3u8"
 	"github.com/sequoiia/twiVod/models"
@@ -22,8 +23,9 @@ func Download(vod *models.TwitchVodOptions) error {
 	vodInfo := parser.VodInfo(vod.Url)
 
 	if HttpClient == nil {
-		HttpClient = http.DefaultClient
+		HttpClient = &http.Client{Timeout: 6 * time.Second}
 	}
+
 
 	vodDetails, err := GetVODDetails(vodInfo.ID, HttpClient)
 	if err != nil {
