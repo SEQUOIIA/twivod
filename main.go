@@ -14,14 +14,13 @@ func main() {
 	viper.SetConfigName("twivod")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("$HOME/.config")
-	viper.AddConfigPath("$APPDATA/twivod")
+	viper.AddConfigPath(os.Getenv("APPDATA"))
 
 	err := viper.ReadInConfig()
 	if err != nil {
 		defaultConfig := []byte("twitchclientid: undefined\n")
 		if runtime.GOOS == "windows" {
-			os.Mkdir("$APPDATA/twivod", 0770)
-			err := ioutil.WriteFile("$APPDATA/twivod/twivod.yaml", defaultConfig, 0770)
+			err := ioutil.WriteFile(os.Getenv("APPDATA")+"\\twivod.yaml", defaultConfig, 0770)
 			if err != nil {
 				log.Fatal(err)
 			}

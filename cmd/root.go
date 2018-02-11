@@ -33,7 +33,7 @@ var rootCmd = &cobra.Command{
 			BandwidthLimit = BandwidthLimit * 1000
 		}
 
-		if viper.Sub("twitch").GetString("clientid") == "undefined" {
+		if viper.GetString("twitchclientid") == "undefined" {
 			if TwitchClientID == "" {
 				fmt.Println("Twitch client-id has not been set. Run 'twivod --help' for further help.")
 				os.Exit(1)
