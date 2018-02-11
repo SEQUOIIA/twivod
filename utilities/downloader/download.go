@@ -12,7 +12,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/grafov/m3u8"
+	"github.com/sequoiia/twivod/internal/github.com/grafov/m3u8"
 	"github.com/sequoiia/twivod/models"
 	"github.com/sequoiia/twivod/utilities/parser"
 )

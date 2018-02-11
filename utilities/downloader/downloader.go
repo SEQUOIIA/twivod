@@ -1,23 +1,22 @@
 package downloader
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/cheggaaa/pb"
-	"github.com/sequoiia/twivod/models"
-	"github.com/sequoiia/twivod/utilities/parser"
-	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
-	"sync"
-    	"github.com/grafov/m3u8"
-    	"bufio"
-	"log"
-	"strings"
 	"strconv"
+	"strings"
+	"sync"
+
+	"github.com/sequoiia/twivod/internal/github.com/grafov/m3u8"
+	"github.com/sequoiia/twivod/models"
+	"github.com/sequoiia/twivod/utilities/parser"
 )
 
 var reKeyValue = regexp.MustCompile(`(time)=("[^"]+"|[^" ]+)`)
@@ -35,14 +34,14 @@ func legacydl(url string, filename string, wg *sync.WaitGroup) {
 	}
 	defer resp.Body.Close()
 
-	bar := pb.New(int(resp.ContentLength)).SetUnits(pb.U_BYTES)
+	//bar := pb.New(int(resp.ContentLength)).SetUnits(pb.U_BYTES)
 
-	bar.ShowSpeed = true
-	bar.Start()
+	//bar.ShowSpeed = true
+	//bar.Start()
 
-	writer := io.MultiWriter(out, bar)
-	io.Copy(writer, resp.Body)
-	bar.Finish()
+	//writer := io.MultiWriter(out, bar)
+	//io.Copy(writer, resp.Body)
+	//bar.Finish()
 
 	wg.Done()
 }

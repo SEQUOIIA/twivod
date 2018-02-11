@@ -1,0 +1,8 @@
+!vendor/
+vendor/*
+!vendor/github.com/
+vendor/github.com/*
+!vendor/github.com/grafov
+
+.idea
+.vscode
