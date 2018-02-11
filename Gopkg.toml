@@ -43,10 +43,6 @@ ignored = ["github.com/grafov/m3u8"]
   version = "1.6.1"
 
 [[constraint]]
-  name = "github.com/mattn/go-sqlite3"
-  version = "1.6.0"
-
-[[constraint]]
   branch = "master"
   name = "github.com/skratchdot/open-golang"
 
