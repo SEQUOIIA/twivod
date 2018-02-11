@@ -16,6 +16,7 @@ var (
 	Verbose bool
 	ConcurrentDownloads int
 	BandwidthLimit int64
+	PrintVersion bool
 )
 
 var rootCmd = &cobra.Command{
@@ -36,6 +37,11 @@ var rootCmd = &cobra.Command{
 		downloader.Remux(vodOptions)
 	},
 	Args: func(cmd *cobra.Command, args[]string) error{
+		if PrintVersion {
+			versionCmd.Run(cmd, args)
+			os.Exit(1)
+		}
+
 		if len(args) < 1 {
 			return errors.New("Requires at least one arg(url)")
 		}
@@ -57,4 +63,7 @@ func Init() {
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "Verbose output")
 	rootCmd.PersistentFlags().IntVarP(&ConcurrentDownloads, "concurrent-download", "c", 1, "The amount of video segments downloaded at the same time.")
 	rootCmd.PersistentFlags().Int64VarP(&BandwidthLimit, "bwlimit", "b", math.MaxInt64, "Limits download speed, value is in kb/s")
+	rootCmd.PersistentFlags().BoolVar(&PrintVersion, "version", false, "Print software version")
+
+	rootCmd.AddCommand(versionCmd)
 }

@@ -1,25 +1,27 @@
 package downloader
 
 import (
-    "net/http"
-    "net/url"
-    "html/template"
-    "io/ioutil"
+    "bufio"
     "bytes"
-    "sync"
-    "github.com/sequoiia/twivod/models"
     "encoding/json"
     "fmt"
-    "regexp"
-    "github.com/skratchdot/open-golang/open"
-    "os/exec"
-    "os"
+    "html/template"
+    "io/ioutil"
     "log"
+    "net/http"
+    "net/url"
+    "os"
+    "os/exec"
+    "regexp"
+    "sync"
+
     "github.com/GeertJohan/go.rice"
-    "github.com/sequoiia/twivod/internal/github.com/grafov/m3u8"
-    "bufio"
+    "github.com/codegangsta/negroni"
     "github.com/gorilla/mux"
-    "github.com/codegangsta/negroni")
+    "github.com/sequoiia/twivod/internal/github.com/grafov/m3u8"
+    "github.com/sequoiia/twivod/models"
+    "github.com/skratchdot/open-golang/open"
+)
 
 const CtxSpanID = 0
 
