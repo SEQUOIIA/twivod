@@ -16,7 +16,7 @@ import (
     "os"
     "log"
     "github.com/GeertJohan/go.rice"
-    "github.com/grafov/m3u8"
+    "github.com/sequoiia/twivod/internal/github.com/grafov/m3u8"
     "bufio"
     "github.com/gorilla/mux"
     "github.com/codegangsta/negroni")
