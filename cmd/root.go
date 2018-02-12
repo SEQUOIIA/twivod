@@ -9,6 +9,7 @@ import (
 
 	"github.com/sequoiia/twivod/models"
 	"github.com/sequoiia/twivod/utilities/downloader"
+	"github.com/sequoiia/twivod/utilities/stream"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -20,6 +21,7 @@ var (
 	PrintVersion        bool
 	SetTwitchClientID   string
 	TwitchClientID      string
+	DataStream          bool
 )
 
 var rootCmd = &cobra.Command{
@@ -47,12 +49,20 @@ var rootCmd = &cobra.Command{
 			models.TwitchConfig.Client_id = TwitchClientID
 		}
 
-		err := downloader.Download(vodOptions, BandwidthLimit)
+		ds := &stream.Client{Enabled: DataStream}
+
+		err := downloader.Download(vodOptions, BandwidthLimit, ds)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 
-		downloader.Remux(vodOptions)
+		ds.Handle(stream.Container{
+			Status:  stream.StatusOK,
+			Type:    stream.TypeStage,
+			Payload: stream.StageRemux,
+		})
+
+		downloader.Remux(vodOptions, ds)
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		if PrintVersion {
@@ -94,6 +104,7 @@ func Init() {
 	rootCmd.PersistentFlags().Int64VarP(&BandwidthLimit, "bwlimit", "b", math.MaxInt64, "Limits download speed, value is in kb/s")
 	rootCmd.PersistentFlags().StringVar(&SetTwitchClientID, "set-client-id", "", "Set client-id in config")
 	rootCmd.PersistentFlags().StringVar(&TwitchClientID, "client-id", "", "Use client-id for only this command")
-
+	rootCmd.PersistentFlags().BoolVarP(&DataStream, "datastream", "d", false, "Instead of outputting progress in human readable text, it will output "+
+		"JSON. For more information and docs check the Github repository at https://github.com/sequoiia/twivod")
 	rootCmd.AddCommand(versionCmd)
 }
