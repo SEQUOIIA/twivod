@@ -17,6 +17,7 @@ import (
 	"github.com/sequoiia/twivod/internal/github.com/grafov/m3u8"
 	"github.com/sequoiia/twivod/models"
 	"github.com/sequoiia/twivod/utilities/parser"
+	"github.com/sequoiia/twivod/utilities/stream"
 )
 
 var reKeyValue = regexp.MustCompile(`(time)=("[^"]+"|[^" ]+)`)
@@ -45,7 +46,6 @@ func legacydl(url string, filename string, wg *sync.WaitGroup) {
 
 	wg.Done()
 }
-
 
 func getAccessToken(cli *http.Client, vodId string) models.HlsVodToken {
 	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/api/vods/%s/access_token", vodId), nil)
@@ -77,7 +77,7 @@ func getAccessToken(cli *http.Client, vodId string) models.HlsVodToken {
 func Get(urlarg string) {
 	vod := parser.VodInfo(fmt.Sprintf(urlarg))
 	if vod.Type != "404" {
-		fmt.Printf("\nDownloading VOD '%v' from Twitch channel '%v'\n",  vod.ID, vod.Channel)
+		fmt.Printf("\nDownloading VOD '%v' from Twitch channel '%v'\n", vod.ID, vod.Channel)
 		cli := http.DefaultClient
 		var token models.HlsVodToken = getAccessToken(cli, vod.ID)
 		var vodKraken models.VodInfoKraken = getVodInfo(cli, vod)
@@ -102,24 +102,26 @@ func Get(urlarg string) {
 		}
 
 		var ffmpegArgs string = fmt.Sprintf("%s_%s.mp4", vod.Channel, vod.ID)
-		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
+		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i", masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
 		stdout, err := cmd.StderrPipe()
-		r := bufio.NewReader(stdout)
+		_ := bufio.NewReader(stdout)
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = cmd.Start(); if err != nil {
+		err = cmd.Start()
+		if err != nil {
 			log.Fatal(err)
 		}
 
-		getProgress(r, vodKraken.Length)
+		//getProgress(r, vodKraken.Length)
 
 		fmt.Println("Download finished!")
 	}
 }
 
-func getVodInfo(hc *http.Client, regVod models.VODinfo) models.VodInfoKraken{
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/kraken/videos/%s%s?on_site=1", regVod.Type, regVod.ID), nil); if err != nil {
+func getVodInfo(hc *http.Client, regVod models.VODinfo) models.VodInfoKraken {
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitch.tv/kraken/videos/%s%s?on_site=1", regVod.Type, regVod.ID), nil)
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -129,32 +131,36 @@ func getVodInfo(hc *http.Client, regVod models.VODinfo) models.VodInfoKraken{
 
 	var payload models.VodInfoKraken
 
-	err = json.NewDecoder(resp.Body).Decode(&payload); if err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&payload)
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	return payload
 }
 
-func getProgress(r *bufio.Reader, timestamp float64) {
+func getProgress(r *bufio.Reader, ds *stream.Client) {
 	for {
-		line, err := r.ReadString('\r'); if err != nil {
+		line, err := r.ReadString('\r')
+		if err != nil {
 			break
 		}
 
 		linee := strings.TrimSpace(line)
-		fmt.Println(linee)
+		if !ds.Enabled {
+			fmt.Println(linee)
 
-		switch  {
-		case strings.HasPrefix(linee, "frame="):
-			tmp := decodeParamsLine(linee)
-			times := strings.Split(tmp["time"], ":")
-			hours, _ := strconv.Atoi(times[0])
-			minutes, _ := strconv.Atoi(times[1])
-			seconds, _ := strconv.ParseFloat(times[2], 64)
+			switch {
+			case strings.HasPrefix(linee, "frame="):
+				tmp := decodeParamsLine(linee)
+				times := strings.Split(tmp["time"], ":")
+				hours, _ := strconv.Atoi(times[0])
+				minutes, _ := strconv.Atoi(times[1])
+				seconds, _ := strconv.ParseFloat(times[2], 64)
 
-			var TotalTime int = int(seconds) + (minutes * 60) + ((hours * 60) * 60)
-			fmt.Printf("timestamp: %v\n", TotalTime)
+				var TotalTime int = int(seconds) + (minutes * 60) + ((hours * 60) * 60)
+				fmt.Printf("timestamp: %v\n", TotalTime)
+			}
 		}
 	}
 }
@@ -167,7 +173,6 @@ func decodeParamsLine(line string) map[string]string {
 	}
 	return out
 }
-
 
 func LegacyGet(urlarg string) {
 	vod := parser.VodInfo(fmt.Sprintf(urlarg))
@@ -201,16 +206,16 @@ func LegacyGet(urlarg string) {
 				fmt.Println("Looks like this VOD is subscriber only, you will need to authenticate before proceeding.\n Go to http://localhost:7261")
 				tmpdatafile, err := os.Create("vod_oauth")
 				if err != nil {
-				    panic(err)
+					panic(err)
 				}
 
 				jsonedvod, err := json.Marshal(vod)
 				if err != nil {
-				    panic(err)
+					panic(err)
 				}
 
 				tmpdatafile.Write([]byte(jsonedvod))
-						// Add oauth authentication here
+				// Add oauth authentication here
 				Oauth(vod)
 			} else {
 				//var vodurls []string
@@ -228,12 +233,12 @@ func LegacyGet(urlarg string) {
 				for _, data := range apiresponse.Chunks.Live {
 					r := regexp.MustCompile(`.*.tv\/.*?(live.*)\.`)
 					filenameflv := r.FindStringSubmatch(data.Url)[1] + ".flv"
-                    filenamemp4 := r.FindStringSubmatch(data.Url)[1] + ".mp4"
-                    cmd := exec.Command("ffmpeg", "-i", filenameflv, "-vcodec", "copy", "-acodec", "copy", filenamemp4)
-                    cmd.Stdout = os.Stdout
-                    cmd.Stdin = os.Stdin
-                    cmd.Stderr = os.Stderr
-                    cmd.Run()
+					filenamemp4 := r.FindStringSubmatch(data.Url)[1] + ".mp4"
+					cmd := exec.Command("ffmpeg", "-i", filenameflv, "-vcodec", "copy", "-acodec", "copy", filenamemp4)
+					cmd.Stdout = os.Stdout
+					cmd.Stdin = os.Stdin
+					cmd.Stderr = os.Stderr
+					cmd.Run()
 
 					//vodurls = append(vodurls, data.Url)
 				}
@@ -252,12 +257,12 @@ func LegacyGet(urlarg string) {
 					}
 				}
 
-                filenamemp4 := vod.Channel + "_" + vod.ID + ".mp4"
+				filenamemp4 := vod.Channel + "_" + vod.ID + ".mp4"
 				cmd := exec.Command("ffmpeg", "-f", "concat", "-i", "demux.txt", "-c", "copy", filenamemp4)
-                cmd.Stdout = os.Stdout
-                cmd.Stdin = os.Stdin
-                cmd.Stderr = os.Stderr
-                cmd.Run()
+				cmd.Stdout = os.Stdout
+				cmd.Stdin = os.Stdin
+				cmd.Stderr = os.Stderr
+				cmd.Run()
 
 				for _, data := range apiresponse.Chunks.Live {
 					r := regexp.MustCompile(`.*.tv\/.*?(live.*)\.`)
@@ -271,7 +276,7 @@ func LegacyGet(urlarg string) {
 
 		} else if vod.Type == "v" {
 
-            cli := http.DefaultClient
+			cli := http.DefaultClient
 
 			endpoint := "https://api.twitch.tv/api/videos/v" + vod.ID
 			req, err := http.NewRequest("GET", endpoint, nil)
@@ -310,74 +315,71 @@ func LegacyGet(urlarg string) {
 				Oauth(vod)
 			} else {
 
+				endpoint = "https://api.twitch.tv/api/vods/" + vod.ID + "/access_token"
+				req, err = http.NewRequest("GET", endpoint, nil)
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Set("User-Agent", "twiVod - https://github.com/equoia/twivod")
 
+				rsp, err := cli.Do(req)
+				if err != nil {
+					panic(err)
+				}
 
+				defer rsp.Body.Close()
+				var vodToken models.HlsVodToken
 
-            endpoint = "https://api.twitch.tv/api/vods/" + vod.ID + "/access_token"
-            req, err = http.NewRequest("GET", endpoint, nil)
-            if err != nil {
-                panic(err)
-            }
-            req.Header.Set("User-Agent", "twiVod - https://github.com/equoia/twivod")
+				tmpbody, err = ioutil.ReadAll(rsp.Body)
+				if err != nil {
+					panic(err)
+				}
 
-            rsp, err := cli.Do(req)
-            if err != nil {
-                panic(err)
-            }
+				err = json.Unmarshal(tmpbody, &vodToken)
+				if err != nil {
+					panic(err)
+				}
 
-            defer rsp.Body.Close()
-            var vodToken models.HlsVodToken
+				endpoint = "http://usher.justin.tv/vod/" + vod.ID + "?nauthsig=" + vodToken.Sig + "&nauth=" + vodToken.Token + "&allow_source=true"
+				req, err = http.NewRequest("GET", endpoint, nil)
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Set("User-Agent", "twiVod - https://github.com/equoia/twivod")
 
-            tmpbody, err = ioutil.ReadAll(rsp.Body)
-            if err != nil {
-                panic(err)
-            }
+				rsp, err = cli.Do(req)
+				if err != nil {
+					panic(err)
+				}
 
-            err = json.Unmarshal(tmpbody, &vodToken)
-            if err != nil {
-                panic(err)
-            }
+				defer rsp.Body.Close()
 
-            endpoint = "http://usher.justin.tv/vod/" + vod.ID + "?nauthsig=" + vodToken.Sig + "&nauth=" + vodToken.Token + "&allow_source=true"
-            req, err = http.NewRequest("GET", endpoint, nil)
-            if err != nil {
-                panic(err)
-            }
-            req.Header.Set("User-Agent", "twiVod - https://github.com/equoia/twivod")
+				p, listType, err := m3u8.DecodeFrom(bufio.NewReader(rsp.Body), true)
+				if err != nil {
+					panic(err)
+				}
 
-            rsp, err = cli.Do(req)
-            if err != nil {
-                panic(err)
-            }
-
-            defer rsp.Body.Close()
-
-            p, listType, err := m3u8.DecodeFrom(bufio.NewReader(rsp.Body), true)
-            if err != nil {
-                panic(err)
-            }
-
-            switch listType {
-                case m3u8.MEDIA:
-                mediapl := p.(*m3u8.MediaPlaylist)
-                fmt.Printf("%+v\n", mediapl)
-                case m3u8.MASTER:
-                masterpl := p.(*m3u8.MasterPlaylist)
-                //fmt.Printf("%+v\n", masterpl.Variants[5])
-                for _, data := range masterpl.Variants {
-                    if data.Video == "chunked" {
-                        fmt.Println(data.URI)
-                        ffmpegargs := vod.Channel + "_" + vod.ID + ".mp4"
-                        cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , data.URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegargs)
-                        cmd.Stdout = os.Stdout
-                        cmd.Stdin = os.Stdin
-                        cmd.Stderr = os.Stderr
-                        cmd.Run()
-                        fmt.Println("Done!")
-                    }
-                }
-            }
-        }
+				switch listType {
+				case m3u8.MEDIA:
+					mediapl := p.(*m3u8.MediaPlaylist)
+					fmt.Printf("%+v\n", mediapl)
+				case m3u8.MASTER:
+					masterpl := p.(*m3u8.MasterPlaylist)
+					//fmt.Printf("%+v\n", masterpl.Variants[5])
+					for _, data := range masterpl.Variants {
+						if data.Video == "chunked" {
+							fmt.Println(data.URI)
+							ffmpegargs := vod.Channel + "_" + vod.ID + ".mp4"
+							cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i", data.URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegargs)
+							cmd.Stdout = os.Stdout
+							cmd.Stdin = os.Stdin
+							cmd.Stderr = os.Stderr
+							cmd.Run()
+							fmt.Println("Done!")
+						}
+					}
+				}
+			}
 		}
 	}
 

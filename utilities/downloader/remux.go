@@ -24,7 +24,7 @@ func Remux(vod *models.TwitchVodOptions, ds *stream.Client) {
 		ds.HandleErrorFatal(err)
 	}
 
-	getProgress(r, 4564564)
+	getProgress(r, ds)
 
 	err = os.Remove(vod.FileName)
 	if err != nil {
