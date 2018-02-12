@@ -132,7 +132,7 @@ func Download(vod *models.TwitchVodOptions, bwlimit int64, ds *stream.Client) er
 
 		//log.Println(endPos)
 
-		file, err := os.Create(vod.FileName)
+		file, err := os.Create(fmt.Sprintf("%s%s", vod.SaveFilePath, vod.FileName))
 		if err != nil {
 			log.Fatal(err)
 		}

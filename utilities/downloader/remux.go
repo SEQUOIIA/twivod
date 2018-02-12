@@ -12,8 +12,8 @@ import (
 )
 
 func Remux(vod *models.TwitchVodOptions, ds *stream.Client) {
-	var ffmpegArgs string = fmt.Sprintf("%s.mp4", vod.Name)
-	cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i", vod.FileName, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
+	var ffmpegArgs string = fmt.Sprintf("%s%s.mp4", vod.SaveFilePath, vod.Name)
+	cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i", fmt.Sprintf("\"%s%s\"", vod.SaveFilePath, vod.FileName), "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
 	stdout, err := cmd.StderrPipe()
 	r := bufio.NewReader(stdout)
 	if err != nil {

@@ -80,7 +80,7 @@ func Get(urlarg string) {
 		fmt.Printf("\nDownloading VOD '%v' from Twitch channel '%v'\n", vod.ID, vod.Channel)
 		cli := http.DefaultClient
 		var token models.HlsVodToken = getAccessToken(cli, vod.ID)
-		var vodKraken models.VodInfoKraken = getVodInfo(cli, vod)
+		//var vodKraken models.VodInfoKraken = getVodInfo(cli, vod)
 
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vod.ID, token.Sig, token.Token), nil)
 		if err != nil {
@@ -104,7 +104,7 @@ func Get(urlarg string) {
 		var ffmpegArgs string = fmt.Sprintf("%s_%s.mp4", vod.Channel, vod.ID)
 		cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i", masterPlayList.Variants[0].URI, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
 		stdout, err := cmd.StderrPipe()
-		_ := bufio.NewReader(stdout)
+		_ = bufio.NewReader(stdout)
 		if err != nil {
 			log.Fatal(err)
 		}
