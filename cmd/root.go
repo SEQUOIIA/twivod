@@ -9,6 +9,7 @@ import (
 
 	"github.com/sequoiia/twivod/models"
 	"github.com/sequoiia/twivod/utilities/downloader"
+	"github.com/sequoiia/twivod/utilities/stream"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -48,12 +49,20 @@ var rootCmd = &cobra.Command{
 			models.TwitchConfig.Client_id = TwitchClientID
 		}
 
-		err := downloader.Download(vodOptions, BandwidthLimit)
+		ds := &stream.Client{Enabled: DataStream}
+
+		err := downloader.Download(vodOptions, BandwidthLimit, ds)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 
-		downloader.Remux(vodOptions)
+		ds.Handle(stream.Container{
+			Status:  stream.StatusOK,
+			Type:    stream.TypeStage,
+			Payload: stream.StageRemux,
+		})
+
+		downloader.Remux(vodOptions, ds)
 	},
 	Args: func(cmd *cobra.Command, args []string) error {
 		if PrintVersion {

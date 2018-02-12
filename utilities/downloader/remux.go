@@ -1,34 +1,43 @@
 package downloader
 
 import (
-	"fmt"
-	"os/exec"
 	"bufio"
-	"log"
+	"fmt"
 	"github.com/sequoiia/twivod/models"
+	"github.com/sequoiia/twivod/utilities/stream"
+	"log"
+	"os/exec"
+
 	"os"
 )
 
-func Remux(vod *models.TwitchVodOptions) {
+func Remux(vod *models.TwitchVodOptions, ds *stream.Client) {
 	var ffmpegArgs string = fmt.Sprintf("%s.mp4", vod.Name)
-	cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i" , vod.FileName, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
+	cmd := exec.Command("ffmpeg", "-analyzeduration", "1000000000", "-probesize", "1000000000", "-i", vod.FileName, "-bsf:a", "aac_adtstoasc", "-c", "copy", ffmpegArgs)
 	stdout, err := cmd.StderrPipe()
 	r := bufio.NewReader(stdout)
 	if err != nil {
-		log.Fatal(err)
+		ds.HandleErrorFatal(err)
 	}
-	err = cmd.Start(); if err != nil {
-		log.Fatal(err)
+	err = cmd.Start()
+	if err != nil {
+		ds.HandleErrorFatal(err)
 	}
-
-	log.Println("Should've started here.")
 
 	getProgress(r, 4564564)
 
 	err = os.Remove(vod.FileName)
 	if err != nil {
-		log.Fatal(err)
+		ds.HandleErrorFatal(err)
 	}
 
-	log.Println("Done!")
+	if !ds.Enabled {
+		log.Println("Done!")
+	} else {
+		ds.Handle(stream.Container{
+			Status:  stream.StatusOK,
+			Type:    stream.TypeStage,
+			Payload: stream.StageFinished,
+		})
+	}
 }

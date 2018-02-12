@@ -15,19 +15,28 @@ import (
 	"github.com/sequoiia/twivod/internal/github.com/grafov/m3u8"
 	"github.com/sequoiia/twivod/models"
 	"github.com/sequoiia/twivod/utilities/parser"
+	"github.com/sequoiia/twivod/utilities/stream"
 )
 
 var HttpClient *http.Client
 
-func Download(vod *models.TwitchVodOptions, bwlimit int64) error {
+func Download(vod *models.TwitchVodOptions, bwlimit int64, ds *stream.Client) error {
 	vodInfo := parser.VodInfo(vod.Url)
 
 	if vodInfo.Type == models.Unknown {
 		return errors.New("unknown URL")
 	}
 
+	if ds.Enabled {
+		ds.Handle(stream.Container{
+			Status:  stream.StatusOK,
+			Type:    stream.TypeStage,
+			Payload: stream.StageStarted,
+		})
+	}
+
 	if HttpClient == nil {
-		HttpClient = &http.Client{Timeout: 6 * time.Second}
+		HttpClient = &http.Client{Timeout: 15 * time.Second}
 	}
 
 	if vodInfo.Type == models.VOD {
@@ -37,22 +46,30 @@ func Download(vod *models.TwitchVodOptions, bwlimit int64) error {
 		}
 		vodInfo.Channel = vodDetails.Channel.Name
 
-		fmt.Printf("Downloading VOD '%v' from Twitch channel '%v'\n", vodInfo.ID, vodInfo.Channel)
+		if !ds.Enabled {
+			fmt.Printf("Downloading VOD '%v' from Twitch channel '%v'\n", vodInfo.ID, vodInfo.Channel)
+		} else {
+			ds.Handle(stream.Container{
+				Status:  stream.StatusOK,
+				Type:    stream.TypeStage,
+				Payload: stream.StageDownload,
+			})
+		}
 		var token models.HlsVodToken = getAccessToken(HttpClient, vodInfo.ID)
 
 		req, err := http.NewRequest("GET", fmt.Sprintf("https://usher.ttvnw.net/vod/%s.m3u8?nauthsig=%s&allow_source=true&allow_spectre=true&nauth=%s", vodInfo.ID, token.Sig, token.Token), nil)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 
 		resp, err := HttpClient.Do(req)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 
 		p, _, err := m3u8.DecodeFrom(bufio.NewReader(resp.Body), true)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 
 		masterPlaylist := p.(*m3u8.MasterPlaylist)
@@ -60,21 +77,24 @@ func Download(vod *models.TwitchVodOptions, bwlimit int64) error {
 		// Get media playlist
 		req, err = http.NewRequest("GET", masterPlaylist.Variants[0].URI, nil)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 
 		resp, err = HttpClient.Do(req)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 
 		pMedia, _, err := m3u8.DecodeFrom(bufio.NewReader(resp.Body), true)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 
 		pMediaPlaylist := pMedia.(*m3u8.MediaPlaylist)
-		log.Printf("Total seconds: %s, elasped seconds: %s, concurrent option: %d\n", pMediaPlaylist.TwitchInfo.TotalSeconds, pMediaPlaylist.TwitchInfo.ElapsedSeconds, vod.MaxConcurrentDownloads)
+
+		if !ds.Enabled {
+			log.Printf("Total seconds: %s, elasped seconds: %s, concurrent option: %d\n", pMediaPlaylist.TwitchInfo.TotalSeconds, pMediaPlaylist.TwitchInfo.ElapsedSeconds, vod.MaxConcurrentDownloads)
+		}
 
 		var w io.WriteCloser
 		var endPos int = int(pMediaPlaylist.Count())
@@ -87,7 +107,7 @@ func Download(vod *models.TwitchVodOptions, bwlimit int64) error {
 		var vodEndpointSlashP = 0
 
 		for !vodEndpointSlashReached {
-			log.Println(vodEndpointCurrent)
+			//log.Println(vodEndpointCurrent)
 			if (masterPlaylist.Variants[0].URI[vodEndpointCurrent]) == '/' {
 				vodEndpointSlashReached = true
 				vodEndpointSlashP = vodEndpointCurrent
@@ -105,12 +125,12 @@ func Download(vod *models.TwitchVodOptions, bwlimit int64) error {
 		}
 
 		vodEndpoint = bytesBuffer.String()
-		log.Println(vodEndpoint)
+		//log.Println(vodEndpoint)
 
 		vod.FileName = fmt.Sprintf("%s.ts", vodInfo.ID)
 		vod.Name = fmt.Sprintf("%s_%s", vodInfo.Channel, vodInfo.ID)
 
-		log.Println(endPos)
+		//log.Println(endPos)
 
 		file, err := os.Create(vod.FileName)
 		if err != nil {
@@ -144,9 +164,22 @@ func Download(vod *models.TwitchVodOptions, bwlimit int64) error {
 			for pw < endPos && buf[pw] != nil {
 				_, err := io.Copy(vod.Writer, buf[pw])
 				if err != nil {
-					log.Panic(err)
+					ds.HandleErrorFatal(err)
 				}
-				log.Printf("Part %d has been downloaded.", pw)
+
+				if !ds.Enabled {
+					log.Printf("Part %d has been downloaded.", pw)
+				} else {
+					ds.Handle(stream.Container{
+						Status: stream.StatusOK,
+						Type:   stream.TypeDownloadProgress,
+						Payload: stream.DownloadProgress{
+							TotalSegments:  endPos,
+							CurrentSegment: pw + 1,
+						},
+					})
+				}
+
 				buf[pw] = nil
 				pw++
 			}
@@ -205,7 +238,8 @@ func GetVODDetails(id string, cli *http.Client) (models.VODDetails, error) {
 
 	var payload models.VODDetails
 
-	err = json.NewDecoder(resp.Body).Decode(&payload); if err != nil {
+	err = json.NewDecoder(resp.Body).Decode(&payload)
+	if err != nil {
 		return models.VODDetails{}, err
 	}
 
