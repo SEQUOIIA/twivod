@@ -31,10 +31,6 @@ ignored = ["github.com/grafov/m3u8"]
   name = "github.com/GeertJohan/go.rice"
 
 [[constraint]]
-  name = "github.com/cheggaaa/pb"
-  version = "2.0.6"
-
-[[constraint]]
   name = "github.com/codegangsta/negroni"
   version = "0.3.0"
 
@@ -53,3 +49,7 @@ ignored = ["github.com/grafov/m3u8"]
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/spf13/viper"
+  revision = "1a0c4a370c3e8286b835467d2dfcdaf636c3538b"
