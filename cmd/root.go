@@ -20,7 +20,7 @@ var (
 	PrintVersion        bool
 	SetTwitchClientID   string
 	TwitchClientID      string
-	DataStream bool
+	DataStream          bool
 )
 
 var rootCmd = &cobra.Command{
@@ -95,8 +95,7 @@ func Init() {
 	rootCmd.PersistentFlags().Int64VarP(&BandwidthLimit, "bwlimit", "b", math.MaxInt64, "Limits download speed, value is in kb/s")
 	rootCmd.PersistentFlags().StringVar(&SetTwitchClientID, "set-client-id", "", "Set client-id in config")
 	rootCmd.PersistentFlags().StringVar(&TwitchClientID, "client-id", "", "Use client-id for only this command")
-	rootCmd.PersistentFlags().BoolVarP(&DataStream, "datastream", "d", false, "Instead of outputting progress in human readable text, it will output " +
+	rootCmd.PersistentFlags().BoolVarP(&DataStream, "datastream", "d", false, "Instead of outputting progress in human readable text, it will output "+
 		"JSON. For more information and docs check the Github repository at https://github.com/sequoiia/twivod")
->>>>>>> feat: Added prototype models for data stream
 	rootCmd.AddCommand(versionCmd)
 }
