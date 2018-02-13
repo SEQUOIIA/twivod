@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -42,7 +43,7 @@ func Download(vod *models.TwitchVodOptions, bwlimit int64, ds *stream.Client) er
 	if vodInfo.Type == models.VOD {
 		vodDetails, err := GetVODDetails(vodInfo.ID, HttpClient)
 		if err != nil {
-			log.Fatal(err)
+			ds.HandleErrorFatal(err)
 		}
 		vodInfo.Channel = vodDetails.Channel.Name
 
@@ -236,11 +237,18 @@ func GetVODDetails(id string, cli *http.Client) (models.VODDetails, error) {
 		return models.VODDetails{}, err
 	}
 
+	defer resp.Body.Close()
+
 	var payload models.VODDetails
 
-	err = json.NewDecoder(resp.Body).Decode(&payload)
+	tmpBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return models.VODDetails{}, err
+	}
+
+	err = json.Unmarshal(tmpBody, &payload)
+	if err != nil {
+		return models.VODDetails{}, errors.New(string(tmpBody))
 	}
 
 	return payload, nil
