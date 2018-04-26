@@ -194,6 +194,7 @@ func Download(vod *models.TwitchVodOptions, bwlimit int64, ds *stream.Client) er
 		return errors.New("VOD not found on Twitch.TV.")
 	}
 
+	vod.Writer.(*os.File).Close()
 	return nil
 }
 
