@@ -202,14 +202,20 @@ func downloadSegment(uri string, vodId int, channel chan models.TwitchVodSegment
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
 		if retries > 0 {
+			log.Printf("Something went wrong with downloading of segment %s, retries left: %d/%d\n", vodId, retries-1, retries)
 			downloadSegment(uri, vodId, channel, retries-1, bwLimit)
+		} else {
+			log.Fatal("No retries left")
 		}
 	}
 
 	resp, err := HttpClient.Do(req)
 	if err != nil {
 		if retries > 0 {
+			log.Printf("Something went wrong with downloading of segment %s, retries left: %d/%d\n", vodId, retries-1, retries)
 			downloadSegment(uri, vodId, channel, retries-1, bwLimit)
+		} else {
+			log.Fatal("No retries left")
 		}
 	}
 
